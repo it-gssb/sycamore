@@ -41,29 +41,25 @@ def getFamilyEmails(familyId):
         
         relation = familyMemberRecord["Relation"]
         if ("Father" == relation):
-            if (email and "@" in email):
-                primaryEmail = email
+            primaryEmail = email
         elif ("Mother" == relation):    
-            if (email and "@" in email):
-                if (primaryEmail):
-                    secondaryEmail = email
-                else:
-                    primaryEmail = email
+            if (primaryEmail):
+                secondaryEmail = email
+            else:
+                primaryEmail = email
         elif ("Grandmother" == relation or "Grandfather" == relation):
-            if (email and "@" in email):
-                if (primaryEmail):
-                    if (secondaryEmail):
-                        tertiaryEmail = email
-                    else:
-                        secondaryEmail = email
+            if (primaryEmail):
+                if (secondaryEmail):
+                    tertiaryEmail = email
                 else:
-                    primaryEmail = email
-        elif (1 == familyMemberRecord["PrimaryParent"]):
-            if (email and "@" in email):
-                if (primaryEmail):
                     secondaryEmail = email
-                else:
-                    primaryEmail = email
+            else:
+                primaryEmail = email
+        elif (1 == familyMemberRecord["PrimaryParent"]):
+            if (primaryEmail):
+                secondaryEmail = email
+            else:
+                primaryEmail = email
         i += 1
     #print(fatherEmail, motherEmail, tertiaryEmail)
     return [primaryEmail, secondaryEmail, tertiaryEmail]
