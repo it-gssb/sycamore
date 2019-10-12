@@ -31,12 +31,9 @@ def getFamilyEmails(familyId):
     primaryEmail = ""
     secondaryEmail = ""
     tertiaryEmail = ""
-    i = 0
-    while (i < len(familyContactsDict)):
-        familyMemberRecord = familyContactsDict[i]
+    for familyMemberRecord in familyContactsDict:
         email = familyMemberRecord["Email"].strip();
         if (not email or not "@" in email):
-            i += 1;
             continue;
         
         relation = familyMemberRecord["Relation"]
@@ -60,7 +57,6 @@ def getFamilyEmails(familyId):
                 secondaryEmail = email
             else:
                 primaryEmail = email
-        i += 1
     #print(fatherEmail, motherEmail, tertiaryEmail)
     return [primaryEmail, secondaryEmail, tertiaryEmail]
 
@@ -84,15 +80,13 @@ listFamilies = literal_eval(listFamiliesInfo)
 print('found ' + str(len(listFamilies)) + ' family records')
 
 familyDict = {}
-k = 0
-while (k < len(listFamilies)):
-    [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(listFamilies[k]["ID"])
-    listFamilies[k]['primaryEmail'] = primaryEmail
-    listFamilies[k]['secondaryEmail'] = secondaryEmail
-    listFamilies[k]['tertiaryEmail'] = tertiaryEmail
+for family in listFamilies:
+    [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
+    family['primaryEmail'] = primaryEmail
+    family['secondaryEmail'] = secondaryEmail
+    family['tertiaryEmail'] = tertiaryEmail
     #print(listFamilies[k])
-    familyDict[listFamilies[k]["Code"]] = listFamilies[k]
-    k += 1
+    familyDict[family["Code"]] = family
 
 listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
 response = retrieve(listClassesUrl)
@@ -103,58 +97,55 @@ classesInfo = response.text
 
 classesDict = literal_eval(classesInfo);
 #print(type(classesDict["Period"]))
-i = 0
-while (i < len(classesDict["Period"])):
-    aClassRecord = classesDict["Period"][i]
-    
+for aClassRecord in classesDict["Period"]:
     teacherFullName = aClassRecord["PrimaryTeacher"]
     teacherFirstName = ""
-    teacherLastName    = ""
+    teacherLastName  = ""
     if (teacherFullName.strip()):
         #print(teacherFullName)
         teacherNameTokens = teacherFullName.split()
-        teacherFirstName =     teacherNameTokens[0]
+        teacherFirstName = teacherNameTokens[0]
         teacherLastName = " ".join(teacherNameTokens[1:])
             
     #print("Class Name = {}, Class Room = {}, Class ID = {}".format(aClassRecord["Name"], aClassRecord["Section"], aClassRecord["ID"]))        
-    i += 1
     classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
     response = retrieve(classInfoUrl)
     classStudentsInfo = response.text
     #print((classStudentsInfo))
-    if len(classStudentsInfo) > 0:    
-        classStudentsInfoDict = literal_eval(classStudentsInfo)
-        #print(classStudentsInfoDict)
-        j = 0
-        while(j < len(classStudentsInfoDict)):
-            #print(classStudentsInfoDict[j]["Code"])
-            # family code is 7 characters long
-            familyCode = classStudentsInfoDict[j]["Code"][:7]
-            state = formatStateName(familyDict.get(familyCode)["State"])
-            familyDict.get(familyCode)["State"] = state;
-            
-            #aClassRecord["Name"] = aClassRecord["Name"].translate({ord(i):None for i in "\""})
-            aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
-            CityStateZip = '"' + \
-                           familyDict.get(familyCode)["City"] + ", " + \
-                           familyDict.get(familyCode)["State"] + " " + \
-                           familyDict.get(familyCode)["ZIP"] + '"';
-                           
-            print("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}"
-                  .format(classStudentsInfoDict[j]["LastName"].strip(), ",",
-                          classStudentsInfoDict[j]["FirstName"].strip(), ",",
-                          aClassRecord["Name"], ",",
-                          aClassRecord["Section"], ",",
-                          teacherLastName, ",",
-                          teacherFirstName, ",",
-                          familyCode, ",",
-                          '"', familyDict.get(familyCode)["Name"], '"', ",",
-                          familyDict.get(familyCode)["primaryEmail"], ",",
-                          familyDict.get(familyCode)["secondaryEmail"], ",",
-                          familyDict.get(familyCode)["tertiaryEmail"], ",",
-                          '"', familyDict.get(familyCode)["Address"], '"', ",",
-                          CityStateZip))
-            
-            #print(familyCode)            
-            #print(familyDict.get(familyCode))
-            j += 1        
+    if len(classStudentsInfo) == 0:  
+        continue;
+      
+    classStudentsInfoDict = literal_eval(classStudentsInfo)
+    #print(classStudentsInfoDict)
+    for classStudent in classStudentsInfoDict:
+        #print(classStudentsInfoDict[j]["Code"])
+        # family code is 7 characters long
+        familyCode = classStudent["Code"][:7]
+        family = familyDict.get(familyCode);
+        
+        family["State"] = formatStateName(family["State"]);
+        
+        #aClassRecord["Name"] = aClassRecord["Name"].translate({ord(i):None for i in "\""})
+        aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
+        cityStateZip = '"' + \
+                       family["City"] + ", " + \
+                       family["State"] + " " + \
+                       family["ZIP"] + '"';
+                       
+        print("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}"
+              .format(classStudent["LastName"].strip(), ",",
+                      classStudent["FirstName"].strip(), ",",
+                      aClassRecord["Name"], ",",
+                      aClassRecord["Section"], ",",
+                      teacherLastName, ",",
+                      teacherFirstName, ",",
+                      familyCode, ",",
+                      '"', family["Name"], '"', ",",
+                      family["primaryEmail"], ",",
+                      family["secondaryEmail"], ",",
+                      family["tertiaryEmail"], ",",
+                      '"', family["Address"], '"', ",",
+                      cityStateZip))
+        
+        #print(familyCode)            
+        #print(family)
