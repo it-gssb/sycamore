@@ -6,11 +6,12 @@ listClasses = mainurl + '/School/2132/Classes'
 listFamiliesUrl = mainurl + '/School/2132/Families'
 token="<define here>";
 
+
 def formatStateName(familyDict, familyCode):
     state = familyDict.get(familyCode)["State"]
     if ("massachusetts" == state.lower()):
         familyDict.get(familyCode)["State"] = "MA";
-    elif ("new hampshire" == state.lower()):
+    elif (state.lower().startswith("new hampshire")):
         familyDict.get(familyCode)["State"] = "NH";
     elif ("rhode island" == state.lower()):
         familyDict.get(familyCode)["State"] = "RI";
@@ -29,35 +30,33 @@ def getFamilyEmails(familyId):
     i = 0
     while (i < len(familyContactsDict)):
         familyMemberRecord = familyContactsDict[i]
-        if ("Father" == familyMemberRecord["Relation"]):
-            if (familyMemberRecord["Email"].strip() and
-                "@" in familyMemberRecord["Email"]):
-                primaryEmail = familyMemberRecord["Email"]
-        elif ("Mother" == familyMemberRecord["Relation"]):    
-            if (familyMemberRecord["Email"].strip() and
-                "@" in familyMemberRecord["Email"]):
-                if (primaryEmail.strip()):
-                    secondaryEmail = familyMemberRecord["Email"]
+        email = familyMemberRecord["Email"].strip();
+        relation = familyMemberRecord["Relation"]
+        if ("Father" == relation):
+            if (email and "@" in email):
+                primaryEmail = email
+        elif ("Mother" == relation):    
+            if (email and "@" in email):
+                if (primaryEmail):
+                    secondaryEmail = email
                 else:
-                    primaryEmail = familyMemberRecord["Email"]
-        elif ("Grandmother" == familyMemberRecord["Relation"] or
-              "Grandfather" == familyMemberRecord["Relation"]):
-            if (familyMemberRecord["Email"].strip() and
-                "@" in familyMemberRecord["Email"]):
-                if (primaryEmail.strip()):
-                    if (secondaryEmail.strip()):
-                        tertiaryEmail = familyMemberRecord["Email"]
+                    primaryEmail = email
+        elif ("Grandmother" == relation or
+              "Grandfather" == relation):
+            if (email and "@" in email):
+                if (primaryEmail):
+                    if (secondaryEmail):
+                        tertiaryEmail = email
                     else:
-                        secondaryEmail = familyMemberRecord["Email"]
+                        secondaryEmail = email
                 else:
-                    primaryEmail = familyMemberRecord["Email"]
+                    primaryEmail = email
         elif (1 == familyMemberRecord["PrimaryParent"]):
-            if (familyMemberRecord["Email"].strip() and
-                "@" in familyMemberRecord["Email"]):
-                if (primaryEmail.strip()):
-                    secondaryEmail = familyMemberRecord["Email"]
+            if (email and "@" in email):
+                if (primaryEmail):
+                    secondaryEmail = email
                 else:
-                    primaryEmail = familyMemberRecord["Email"]
+                    primaryEmail = email
         i += 1
     #print(fatherEmail, motherEmail, tertiaryEmail)
     return [primaryEmail, secondaryEmail, tertiaryEmail]
