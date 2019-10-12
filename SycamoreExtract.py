@@ -1,25 +1,29 @@
 import requests
 from ast import literal_eval
 
-mainurl = 'https://app.sycamoreschool.com/api/v1'
-listClasses = mainurl + '/School/2132/Classes'
-listFamiliesUrl = mainurl + '/School/2132/Families'
+mainUrl = 'https://app.sycamoreschool.com/api/v1';
+schoolId = 2132;
 token="<define here>";
 
-
-def formatStateName(familyDict, familyCode):
-    state = familyDict.get(familyCode)["State"]
-    if ("massachusetts" == state.lower()):
-        familyDict.get(familyCode)["State"] = "MA";
-    elif (state.lower().startswith("new hampshire")):
-        familyDict.get(familyCode)["State"] = "NH";
-    elif ("rhode island" == state.lower()):
-        familyDict.get(familyCode)["State"] = "RI";
+def retrieve(url):
+    response = requests.get(url, headers={'Authorization': 'Bearer ' + token });
+    if not response.status_code == 200:
+        print('Request ' + url + ' failed.')
+    return response;
+    
+def formatStateName(state):
+    newState = state.strip();
+    if ("massachusetts" in state.strip().lower()):
+        newState = "MA";
+    elif ("new hampshire" in state.strip().lower()):
+        newState = "NH";
+    elif ("rhode island" in state.strip().lower()):
+        newState = "RI";
+    return newState.upper();
 
 def getFamilyEmails(familyId):
-    familyContactsURL = mainurl + '/Family/' + str(familyId) + '/Contacts'
-    response = requests.get(familyContactsURL,
-                            headers={'Authorization': 'Bearer ' + token })
+    familyContactsURL = mainUrl + '/Family/' + str(familyId) + '/Contacts'
+    response = retrieve(familyContactsURL)
     familyContacts = response.text    
     #print(familyContacts)    
     familyContactsDict = literal_eval(familyContacts)
@@ -31,6 +35,10 @@ def getFamilyEmails(familyId):
     while (i < len(familyContactsDict)):
         familyMemberRecord = familyContactsDict[i]
         email = familyMemberRecord["Email"].strip();
+        if (not email or not "@" in email):
+            i += 1;
+            continue;
+        
         relation = familyMemberRecord["Relation"]
         if ("Father" == relation):
             if (email and "@" in email):
@@ -41,8 +49,7 @@ def getFamilyEmails(familyId):
                     secondaryEmail = email
                 else:
                     primaryEmail = email
-        elif ("Grandmother" == relation or
-              "Grandfather" == relation):
+        elif ("Grandmother" == relation or "Grandfather" == relation):
             if (email and "@" in email):
                 if (primaryEmail):
                     if (secondaryEmail):
@@ -69,12 +76,8 @@ def getFamilyEmails(familyId):
 
 # In /Family/<Id>/Contacts I will get email addresses of both mother and father
 # Use token here.
-
-# response = requests.get(url4b, headers={'Authorization': 'Bearer ' + token })
-# print ("code:"+ str(response.status_code))
-#print(response.text)
-
-response = requests.get(listFamiliesUrl, headers={'Authorization': 'Bearer ' + token })
+listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
+response = retrieve(listFamiliesUrl)
 print ("******************")
 print ("code:"+ str(response.status_code))
 print ("******************")
@@ -82,6 +85,8 @@ print ("******************")
 listFamiliesInfo = response.text
 #print(listFamiliesInfo)
 listFamilies = literal_eval(listFamiliesInfo)
+print('found ' + str(len(listFamilies)) + ' family records')
+
 familyDict = {}
 k = 0
 while (k < len(listFamilies)):
@@ -93,7 +98,8 @@ while (k < len(listFamilies)):
     familyDict[listFamilies[k]["Code"]] = listFamilies[k]
     k += 1
 
-response = requests.get(listClasses, headers={'Authorization': 'Bearer ' + token })
+listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
+response = retrieve(listClassesUrl)
 print ("code:"+ str(response.status_code))
 classesInfo = response.text
 #print(classesInfo)
@@ -116,9 +122,8 @@ while (i < len(classesDict["Period"])):
             
     #print("Class Name = {}, Class Room = {}, Class ID = {}".format(aClassRecord["Name"], aClassRecord["Section"], aClassRecord["ID"]))        
     i += 1
-    classInfoUrl = mainurl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
-    response = requests.get(classInfoUrl,
-                             headers={'Authorization': 'Bearer ' + token })
+    classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
+    response = retrieve(classInfoUrl)
     classStudentsInfo = response.text
     #print((classStudentsInfo))
     if len(classStudentsInfo) > 0:    
@@ -129,13 +134,14 @@ while (i < len(classesDict["Period"])):
             #print(classStudentsInfoDict[j]["Code"])
             # family code is 7 characters long
             familyCode = classStudentsInfoDict[j]["Code"][:7]
-            formatStateName(familyDict, familyCode)
+            state = formatStateName(familyDict.get(familyCode)["State"])
+            familyDict.get(familyCode)["State"] = state;
             
             #aClassRecord["Name"] = aClassRecord["Name"].translate({ord(i):None for i in "\""})
             aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
             CityStateZip = '"' + \
                            familyDict.get(familyCode)["City"] + ", " + \
-                           familyDict.get(familyCode)["State"].upper() + " " + \
+                           familyDict.get(familyCode)["State"] + " " + \
                            familyDict.get(familyCode)["ZIP"] + '"';
                            
             print("{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}"
