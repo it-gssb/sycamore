@@ -17,13 +17,41 @@ class RestError(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value);
-
-
+    
 def retrieve(url):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token });
     if not response.status_code == 200:
         raise RestError('Request ' + url + ' failed with code ' + str(response.status_code))
-    return response;
+    info = response.text
+#     print((info))
+    record = [];
+    if len(info) > 0:  
+        record = literal_eval(info)
+    return record;
+
+def getFamilyDict(mainUrl, schoolId):
+    listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
+    listFamilies = retrieve(listFamiliesUrl)
+    print 'Retrieving {0} family records.'.format(str(len(listFamilies)))
+    familyDict = {}
+    for family in listFamilies:
+        [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
+        family['primaryEmail'] = primaryEmail
+        family['secondaryEmail'] = secondaryEmail
+        family['tertiaryEmail'] = tertiaryEmail
+        familyDict[family["Code"]] = family
+#         print(family)
+    return familyDict
+
+def getClassDict(mainUrl, schoolId):
+    listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
+    classesDict = retrieve(listClassesUrl)
+    print 'Retrieving {0} class records.'.format(str(len(classesDict["Period"])))
+#     print(classesDict)
+#     print(type(classesDict["Period"]))
+    # validate class data
+    validateClassDetails(classesDict["Period"])
+    return classesDict
     
 def formatStateName(state):
     newState = state.strip();
@@ -51,115 +79,97 @@ def includeEmail(familyMemberRecord):
 
 def getFamilyEmails(familyId):
     familyContactsURL = mainUrl + '/Family/' + str(familyId) + '/Contacts'
-    response = retrieve(familyContactsURL)
-    familyContacts = response.text    
-    #print(familyContacts)    
-    familyContactsDict = literal_eval(familyContacts)
+    familyContactsDict = retrieve(familyContactsURL)
     #print(familyContactsDict)
 
     # Sort family based on relationships
     familyContactsDict = sorted(familyContactsDict, 
                                 key=lambda family: sortCriteria(family));
-    # pick up to three first family contacts with emails
+    # pick up to three first family contacts that define an email
     firstThree = list(filter(lambda r: includeEmail(r), familyContactsDict))[:3];
     result = ["", "", ""];
     for i in range(0, len(firstThree)):
         result[i] = firstThree[i]["Email"].strip();
     return result;
 
-def createRecords(classStudent):
+def createRecord(aClassRecord, classStudent, familyDict):
     # family code is 7 characters long
     familyCode = classStudent["Code"][:7]
     family = familyDict.get(familyCode);
-    
+    family["State"] = formatStateName(family["State"]);
 #     print(familyCode)            
 #     print(family)
     
-    family["State"] = formatStateName(family["State"]);
+    teacherFullName = aClassRecord["PrimaryTeacher"]
+    teacherFirstName = ""
+    teacherLastName  = ""
+    if (teacherFullName.strip()):
+        teacherNameTokens = teacherFullName.split()
+        teacherFirstName = teacherNameTokens[0]
+        teacherLastName = " ".join(teacherNameTokens[1:])
+    
     cityStateZip = '"' + \
                    family["City"] + ", " + \
                    family["State"] + " " + \
                    family["ZIP"] + '"';
                    
     return "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}" \
-           .format(classStudent["LastName"].strip(), ",",  \
-                   classStudent["FirstName"].strip(), ",", \
-                   aClassRecord["Name"], ",", \
-                   aClassRecord["Section"], ",", \
-                   teacherLastName, ",", \
-                   teacherFirstName, ",", \
-                   familyCode, ",", \
-                   '"', family["Name"], '"', ",", \
-                   family["primaryEmail"], ",", \
-                   family["secondaryEmail"], ",", \
-                   family["tertiaryEmail"], ",", \
-                   '"', family["Address"], '"', ",", \
+           .format(classStudent["LastName"].strip(), ",",
+                   classStudent["FirstName"].strip(), ",",
+                   aClassRecord["Name"], ",",
+                   aClassRecord["Section"], ",",
+                   teacherLastName, ",",
+                   teacherFirstName, ",",
+                   familyCode, ",",
+                   '"', family["Name"], '"', ",",
+                   family["primaryEmail"], ",",
+                   family["secondaryEmail"], ",",
+                   family["tertiaryEmail"], ",",
+                   '"', family["Address"], '"', ",",
                    cityStateZip)
-    
 
-# Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, FamilyId, ParentName
-# Primary Parent Name, VolunteerAssignment, Address, 
-#From Classes record, get Room(Section), Class(Description), TeacherName(PrimaryTeacher), ClassID
-#For each ClassID
+def validateClassDetails(classes):
+    for aClassRecord in classes:
+        teacherFullName = aClassRecord["PrimaryTeacher"]
+        # Report Missing Teacher details
+        if (not teacherFullName.strip()):
+            print('Warning: Missing teacher name in record for class {0}'
+                  .format(aClassRecord["Name"]))
+            
+def saveRecords(allRecords):
+    for record in allRecords:
+        print record;
+
+# Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, 
+# FamilyId, ParentName, Primary Parent Name, VolunteerAssignment, Address, 
+# From Classes record, get Room(Section), Class(Description),
+# TeacherName(PrimaryTeacher), ClassID for each ClassID
 
 # In /Family/<Id>/Contacts I will get email addresses of both mother and father
 # Use token here.
 try:
-    listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
-    response = retrieve(listFamiliesUrl)
-    print ("******************")
-    print ("code:"+ str(response.status_code))
-    print ("******************")
-    #print ("content:"+ str(response.text))
-    listFamiliesInfo = response.text
-    #print(listFamiliesInfo)
-    listFamilies = literal_eval(listFamiliesInfo)
-    print('found ' + str(len(listFamilies)) + ' family records')
+    familyDict = getFamilyDict(mainUrl, schoolId)
+    classesDict = getClassDict(mainUrl, schoolId)
     
-    familyDict = {}
-    for family in listFamilies:
-        [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
-        family['primaryEmail'] = primaryEmail
-        family['secondaryEmail'] = secondaryEmail
-        family['tertiaryEmail'] = tertiaryEmail
-        #print(listFamilies[k])
-        familyDict[family["Code"]] = family
-    
-    listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
-    response = retrieve(listClassesUrl)
-    print ("code:"+ str(response.status_code))
-    classesInfo = response.text
-    #print(classesInfo)
-    
-    
-    classesDict = literal_eval(classesInfo);
-    #print(type(classesDict["Period"]))
+    allRecords=[];
     for aClassRecord in classesDict["Period"]:
         # clean name of record
         aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
-        
-        teacherFullName = aClassRecord["PrimaryTeacher"]
-        teacherFirstName = ""
-        teacherLastName  = ""
-        if (teacherFullName.strip()):
-            #print(teacherFullName)
-            teacherNameTokens = teacherFullName.split()
-            teacherFirstName = teacherNameTokens[0]
-            teacherLastName = " ".join(teacherNameTokens[1:])
-                
-    #     print("Class Name = {}, Class Room = {}, Class ID = {}"
-    #            .format(aClassRecord["Name"], aClassRecord["Section"], aClassRecord["ID"]))        
+#         print("Class Name = {}, Class Room = {}, Class ID = {}"
+#               .format(aClassRecord["Name"], aClassRecord["Section"], aClassRecord["ID"]))
+   
         classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
-        response = retrieve(classInfoUrl)
-        classStudentsInfo = response.text
-        #print((classStudentsInfo))
-        if len(classStudentsInfo) == 0:  
-            continue;
-          
-        classStudentsInfoDict = literal_eval(classStudentsInfo)
-        #print(classStudentsInfoDict)
+        classStudentsInfoDict = retrieve(classInfoUrl)
+        print('Retrieved {0} student records in class {1}.'
+              .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
+#         print(classStudentsInfoDict)
+        
+        # create records for all students
         for classStudent in classStudentsInfoDict:
-            print(createRecords(classStudent))
+            allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+            
+    saveRecords(allRecords);
 except RestError as e:
     print("REST API error: {0}".format(e.value));
-
+else:
+    print("Connection failed");
