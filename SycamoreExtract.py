@@ -3,6 +3,12 @@ from ast import literal_eval
 
 mainUrl = 'https://app.sycamoreschool.com/api/v1';
 schoolId = 2132;
+
+relationships = {'Parents' : 1, 'Mother' : 2, 'Father' : 3,
+                 'Grandmother' : 4, 'Grandfather' : 5,
+                 'Stepmother' : 6, 'Stepfather' : 7,
+                 'Aunt' : 8, 'Uncle' : 9, 'Relative' : 10};
+                 
 token="<define here>";
 
 def retrieve(url):
@@ -21,6 +27,20 @@ def formatStateName(state):
         newState = "RI";
     return newState.upper();
 
+def sortCriteria(familyMemberRecord):
+    code = relationships.get(familyMemberRecord["Relation"], 100);
+    if (familyMemberRecord["PrimaryParent"] == 1):
+        code = 1;
+    return code;
+
+def containsEmail(familyMemberRecord):
+    email = familyMemberRecord["Email"].strip();
+    return email and "@" in email;
+
+def includeEmail(familyMemberRecord):
+    return (sortCriteria(familyMemberRecord) < 100 and
+            containsEmail(familyMemberRecord));
+
 def getFamilyEmails(familyId):
     familyContactsURL = mainUrl + '/Family/' + str(familyId) + '/Contacts'
     response = retrieve(familyContactsURL)
@@ -28,38 +48,17 @@ def getFamilyEmails(familyId):
     #print(familyContacts)    
     familyContactsDict = literal_eval(familyContacts)
     #print(familyContactsDict)
-    primaryEmail = ""
-    secondaryEmail = ""
-    tertiaryEmail = ""
-    for familyMemberRecord in familyContactsDict:
-        email = familyMemberRecord["Email"].strip();
-        if (not email or not "@" in email):
-            continue;
-        
-        relation = familyMemberRecord["Relation"]
-        if ("Father" == relation):
-            primaryEmail = email
-        elif ("Mother" == relation):    
-            if (primaryEmail):
-                secondaryEmail = email
-            else:
-                primaryEmail = email
-        elif ("Grandmother" == relation or "Grandfather" == relation):
-            if (primaryEmail):
-                if (secondaryEmail):
-                    tertiaryEmail = email
-                else:
-                    secondaryEmail = email
-            else:
-                primaryEmail = email
-        elif (1 == familyMemberRecord["PrimaryParent"]):
-            if (primaryEmail):
-                secondaryEmail = email
-            else:
-                primaryEmail = email
-    #print(fatherEmail, motherEmail, tertiaryEmail)
-    return [primaryEmail, secondaryEmail, tertiaryEmail]
 
+    # Sort family based on relationships
+    familyContactsDict = sorted(familyContactsDict, 
+                                key=lambda family: sortCriteria(family));
+    # pick up to three first family contacts with emails
+    firstThree = list(filter(lambda r: includeEmail(r), familyContactsDict))[:3];
+    result = ["", "", ""];
+    for i in range(0, len(firstThree)):
+        result[i] = firstThree[i]["Email"].strip();
+    return result;
+    
 
 # Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, FamilyId, ParentName
 # Primary Parent Name, VolunteerAssignment, Address, 
