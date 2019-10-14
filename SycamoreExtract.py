@@ -1,5 +1,6 @@
 import requests
 from ast import literal_eval
+import logging
 
 token="<define here>";
 
@@ -21,18 +22,19 @@ class RestError(Exception):
 def retrieve(url):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token });
     if not response.status_code == 200:
-        raise RestError('Request ' + url + ' failed with code ' + str(response.status_code))
+        msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
+        raise RestError(msg)
     info = response.text
-#     print((info))
+    logging.debug((info))
     record = [];
-    if len(info) > 0:  
+    if len(info) > 0:
         record = literal_eval(info)
     return record;
 
 def getFamilyDict(mainUrl, schoolId):
     listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
     listFamilies = retrieve(listFamiliesUrl)
-    print 'Retrieving {0} family records.'.format(str(len(listFamilies)))
+    logging.info('Retrieving {0} family records.'.format(str(len(listFamilies))))
     familyDict = {}
     for family in listFamilies:
         [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
@@ -40,15 +42,15 @@ def getFamilyDict(mainUrl, schoolId):
         family['secondaryEmail'] = secondaryEmail
         family['tertiaryEmail'] = tertiaryEmail
         familyDict[family["Code"]] = family
-#         print(family)
+        logging.debug(family)
     return familyDict
 
 def getClassDict(mainUrl, schoolId):
     listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
     classesDict = retrieve(listClassesUrl)
-    print 'Retrieving {0} class records.'.format(str(len(classesDict["Period"])))
-#     print(classesDict)
-#     print(type(classesDict["Period"]))
+    logging.info('Retrieving {0} class records.'
+                 .format(str(len(classesDict["Period"]))))
+    logging.debug(classesDict)
     # validate class data
     validateClassDetails(classesDict["Period"])
     return classesDict
@@ -133,8 +135,8 @@ def validateClassDetails(classes):
         teacherFullName = aClassRecord["PrimaryTeacher"]
         # Report Missing Teacher details
         if (not teacherFullName.strip()):
-            print('Warning: Missing teacher name in record for class {0}'
-                  .format(aClassRecord["Name"]))
+            logging.warn('Warning: Missing teacher name in record for class {0}'
+                         .format(aClassRecord["Name"]))
             
 def saveRecords(allRecords):
     for record in allRecords:
@@ -147,6 +149,7 @@ def saveRecords(allRecords):
 
 # In /Family/<Id>/Contacts I will get email addresses of both mother and father
 # Use token here.
+logging.basicConfig(level=logging.INFO)
 try:
     familyDict = getFamilyDict(mainUrl, schoolId)
     classesDict = getClassDict(mainUrl, schoolId)
@@ -155,14 +158,15 @@ try:
     for aClassRecord in classesDict["Period"]:
         # clean name of record
         aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
-#         print("Class Name = {}, Class Room = {}, Class ID = {}"
-#               .format(aClassRecord["Name"], aClassRecord["Section"], aClassRecord["ID"]))
+        logging.debug(("Class Name = {}, Class Room = {}, Class ID = {}"
+                      .format(aClassRecord["Name"], aClassRecord["Section"],
+                              aClassRecord["ID"])))
    
         classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
         classStudentsInfoDict = retrieve(classInfoUrl)
-        print('Retrieved {0} student records in class {1}.'
-              .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
-#         print(classStudentsInfoDict)
+        logging.info('Retrieved {0} student records in class {1}.'
+                     .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
+        logging.debug(classStudentsInfoDict)
         
         # create records for all students
         for classStudent in classStudentsInfoDict:
@@ -170,6 +174,7 @@ try:
             
     saveRecords(allRecords);
 except RestError as e:
-    print("REST API error: {0}".format(e.value));
-else:
-    print("Connection failed");
+    msg = "REST API error: {0}".format(e.value);
+    logging.exception(msg);
+except Exception as ex:
+    logging.exception("Connection failed");
