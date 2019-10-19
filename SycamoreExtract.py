@@ -1,5 +1,6 @@
 import requests
 from ast import literal_eval
+import re
 import logging
 
 token="<define here>";
@@ -19,12 +20,39 @@ class RestError(Exception):
     def __str__(self):
         return repr(self.value);
     
+def correctUnicodeEscape(text):
+    # find all occurrences of the pattern
+    newText = '';
+    startIndex = 0;
+    # find all occurrences of the pattern \uhhhh in text
+    for m in re.finditer('\\u[\\da-f]{4}', text):
+        # attach text between patterns to result string
+        newText += text[startIndex:m.start()-1]
+        startIndex = m.end()
+        # convert \uhhhh with 4 digit hex number to unicode
+        hexnum = '0x' + text[m.start()+1:m.end()]
+        uChar = ''
+        # only convert and add unicode 
+        if int(hexnum, 0) <= 255:
+            uChar = unichr(int(hexnum, 0))
+            logging.debug("Converted hex " + hexnum +
+                         " to special character '" + uChar + "'")
+        # attach converted unicode character to return string
+        newText += uChar
+    
+    # attach remaining text after last occurrence of pattern
+    newText += text[startIndex:len(text)]
+
+    return newText;
+    
+    
 def retrieve(url):
-    response = requests.get(url, headers={'Authorization': 'Bearer ' + token });
+    response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
+                                          'Content-type': 'application/json; charset=utf-8' });
     if not response.status_code == 200:
         msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
         raise RestError(msg)
-    info = response.text
+    info = correctUnicodeEscape(response.text)
     logging.debug((info))
     record = [];
     if len(info) > 0:
@@ -34,7 +62,7 @@ def retrieve(url):
 def getFamilyDict(mainUrl, schoolId):
     listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
     listFamilies = retrieve(listFamiliesUrl)
-    logging.info('Retrieving {0} family records.'.format(str(len(listFamilies))))
+    logging.info('Found {0} family records.'.format(str(len(listFamilies))))
     familyDict = {}
     for family in listFamilies:
         [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
