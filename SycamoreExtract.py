@@ -13,6 +13,8 @@ relationships = {'Parents' : 1, 'Mother' : 2, 'Father' : 3,
                  'Stepmother' : 6, 'Stepfather' : 7,
                  'Aunt' : 8, 'Uncle' : 9, 'Relative' : 10};
                  
+teacherNames = {}
+                 
 
 class RestError(Exception):
     def __init__(self, value):
@@ -45,10 +47,9 @@ def correctUnicodeEscape(text):
 
     return newText;
     
-    
 def retrieve(url):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
-                                          'Content-type': 'application/json; charset=utf-8' });
+                                          'Content-type': 'application/json; charset=utf-8'});
     if not response.status_code == 200:
         msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
         raise RestError(msg)
@@ -58,6 +59,9 @@ def retrieve(url):
     if len(info) > 0:
         record = literal_eval(info)
     return record;
+
+def camelCase(string):
+    return " ".join(a.capitalize() for a in re.split(r"[^a-zA-Z0-9&#\.-]", string))
 
 def getFamilyDict(mainUrl, schoolId):
     listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
@@ -93,6 +97,19 @@ def formatStateName(state):
         newState = "RI";
     return newState.upper();
 
+def formatClassName(className):
+    result = className
+    if ('DSD I/' in className):
+        components = className.split('/')
+        c = teacherNames.get(components[1])
+        if (c is None):
+            c = chr(ord('A') + len(teacherNames))
+            teacherNames[components[1]] = c;
+        result = 'DSD I/' + c
+    elif ("DSD II" in className):
+        result = className.replace(' Jahr', 'J')
+    return result;
+
 def sortCriteria(familyMemberRecord):
     code = relationships.get(familyMemberRecord["Relation"], 100);
     if (familyMemberRecord["PrimaryParent"] == 1):
@@ -127,8 +144,6 @@ def createRecord(aClassRecord, classStudent, familyDict):
     familyCode = classStudent["Code"][:7]
     family = familyDict.get(familyCode);
     family["State"] = formatStateName(family["State"]);
-#     print(familyCode)            
-#     print(family)
     
     teacherFullName = aClassRecord["PrimaryTeacher"]
     teacherFirstName = ""
@@ -139,23 +154,23 @@ def createRecord(aClassRecord, classStudent, familyDict):
         teacherLastName = " ".join(teacherNameTokens[1:])
     
     cityStateZip = '"' + \
-                   family["City"] + ", " + \
+                   camelCase(family["City"].strip()) + ", " + \
                    family["State"] + " " + \
-                   family["ZIP"] + '"';
+                   family["ZIP"][0:5].strip() + '"';
                    
     return "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}" \
            .format(classStudent["LastName"].strip(), ",",
                    classStudent["FirstName"].strip(), ",",
-                   aClassRecord["Name"], ",",
-                   aClassRecord["Section"], ",",
-                   teacherLastName, ",",
-                   teacherFirstName, ",",
+                   formatClassName(aClassRecord["Name"].strip()), ",",
+                   aClassRecord["Section"].strip(), ",",
+                   teacherLastName.strip(), ",",
+                   teacherFirstName.strip(), ",",
                    familyCode, ",",
-                   '"', family["Name"], '"', ",",
-                   family["primaryEmail"], ",",
-                   family["secondaryEmail"], ",",
-                   family["tertiaryEmail"], ",",
-                   '"', family["Address"], '"', ",",
+                   '"', family["Name"].strip(), '"', ",",
+                   family["primaryEmail"].strip(), ",",
+                   family["secondaryEmail"].strip(), ",",
+                   family["tertiaryEmail"].strip(), ",",
+                   '"', camelCase(family["Address"].strip()), '"', ",",
                    cityStateZip)
 
 def validateClassDetails(classes):
