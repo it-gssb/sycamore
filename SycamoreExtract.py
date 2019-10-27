@@ -137,7 +137,25 @@ def getFamilyEmails(familyId):
     result = ["", "", ""];
     for i in range(0, len(firstThree)):
         result[i] = firstThree[i]["Email"].strip();
-    return result;
+    return result
+
+def createRecordHeader() :
+    header = ["StudentLastName",
+              "StudentFirstName",
+              "Class",
+              "Room",
+              "TeacherLastName",
+              "TeacherFirstName",
+              "FamilyID",
+              "ParentNames",
+              "PrimaryEmail",
+              "SecondaryEmail",
+              "TertiaryEmail",
+              "StreetAddress", 
+              "CityStateZip"]
+    
+    return ",".join(header);
+                   
 
 def createRecord(aClassRecord, classStudent, familyDict):
     # family code is 7 characters long
@@ -158,20 +176,21 @@ def createRecord(aClassRecord, classStudent, familyDict):
                    family["State"] + " " + \
                    family["ZIP"][0:5].strip() + '"';
                    
-    return "{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}" \
-           .format(classStudent["LastName"].strip(), ",",
-                   classStudent["FirstName"].strip(), ",",
-                   formatClassName(aClassRecord["Name"].strip()), ",",
-                   aClassRecord["Section"].strip(), ",",
-                   teacherLastName.strip(), ",",
-                   teacherFirstName.strip(), ",",
-                   familyCode, ",",
-                   '"', family["Name"].strip(), '"', ",",
-                   family["primaryEmail"].strip(), ",",
-                   family["secondaryEmail"].strip(), ",",
-                   family["tertiaryEmail"].strip(), ",",
-                   '"', camelCase(family["Address"].strip()), '"', ",",
-                   cityStateZip)
+    record = [classStudent["LastName"].strip(),
+              classStudent["FirstName"].strip(),
+              formatClassName(aClassRecord["Name"].strip()),
+              aClassRecord["Section"].strip(),
+              teacherLastName.strip(),
+              teacherFirstName.strip(),
+              familyCode,
+              '"' + family["Name"].strip() + '"',
+              family["primaryEmail"].strip(),
+              family["secondaryEmail"].strip(),
+              family["tertiaryEmail"].strip(),
+              '"' + camelCase(family["Address"].strip()) + '"', 
+              cityStateZip]
+    
+    return ",".join(record);
 
 def validateClassDetails(classes):
     for aClassRecord in classes:
@@ -198,6 +217,7 @@ try:
     classesDict = getClassDict(mainUrl, schoolId)
     
     allRecords=[];
+    allRecords.append(createRecordHeader())
     for aClassRecord in classesDict["Period"]:
         # clean name of record
         aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
