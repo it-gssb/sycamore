@@ -1,20 +1,19 @@
-import requests
-from ast import literal_eval
+import argparse
 import re
 import logging
+import requests
+from ast import literal_eval
 
-token="<define here>";
+## CONSTANTS
 
-mainUrl = 'https://app.sycamoreschool.com/api/v1';
-schoolId = 2132;
+MAIN_URL = 'https://app.sycamoreschool.com/api/v1';
 
-relationships = {'Parents' : 1, 'Mother' : 2, 'Father' : 3,
+RELATIONSHIPS = {'Parents' : 1, 'Mother' : 2, 'Father' : 3,
                  'Grandmother' : 4, 'Grandfather' : 5,
                  'Stepmother' : 6, 'Stepfather' : 7,
                  'Aunt' : 8, 'Uncle' : 9, 'Relative' : 10};
                  
-teacherNames = {}
-                 
+##           
 
 class RestError(Exception):
     def __init__(self, value):
@@ -47,7 +46,7 @@ def correctUnicodeEscape(text):
 
     return newText;
     
-def retrieve(url):
+def retrieve(url, token):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
                                           'Content-type': 'application/json; charset=utf-8'});
     if not response.status_code == 200:
@@ -63,13 +62,13 @@ def retrieve(url):
 def camelCase(string):
     return " ".join(a.capitalize() for a in re.split(r"[^a-zA-Z0-9&#\.-]", string))
 
-def getFamilyDict(mainUrl, schoolId):
-    listFamiliesUrl = mainUrl + '/School/' + str(schoolId) + '/Families'
-    listFamilies = retrieve(listFamiliesUrl)
+def getFamilyDict(MAIN_URL, schoolId, token):
+    listFamiliesUrl = MAIN_URL + '/School/' + str(schoolId) + '/Families'
+    listFamilies = retrieve(listFamiliesUrl, token)
     logging.info('Found {0} family records.'.format(str(len(listFamilies))))
     familyDict = {}
     for family in listFamilies:
-        [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"])
+        [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"], token)
         family['primaryEmail'] = primaryEmail
         family['secondaryEmail'] = secondaryEmail
         family['tertiaryEmail'] = tertiaryEmail
@@ -77,9 +76,9 @@ def getFamilyDict(mainUrl, schoolId):
         logging.debug(family)
     return familyDict
 
-def getClassDict(mainUrl, schoolId):
-    listClassesUrl = mainUrl + '/School/' + str(schoolId) + '/Classes'
-    classesDict = retrieve(listClassesUrl)
+def getClassDict(MAIN_URL, schoolId, token):
+    listClassesUrl = MAIN_URL + '/School/' + str(schoolId) + '/Classes'
+    classesDict = retrieve(listClassesUrl, token)
     logging.info('Retrieving {0} class records.'
                  .format(str(len(classesDict["Period"]))))
     logging.debug(classesDict)
@@ -97,21 +96,20 @@ def formatStateName(state):
         newState = "RI";
     return newState.upper();
 
-def formatClassName(className):
+def formatClassName(className, teacherLast, teacherFirst):
     result = className
     if ('DSD I/' in className):
         components = className.split('/')
-        c = teacherNames.get(components[1])
-        if (c is None):
-            c = chr(ord('A') + len(teacherNames))
-            teacherNames[components[1]] = c;
+        c = ''
+        if len(components)>1 and components[1].strip() == teacherLast:
+            c = teacherFirst[0] + teacherLast[0]
         result = 'DSD I/' + c
     elif ("DSD II" in className):
         result = className.replace(' Jahr', 'J')
     return result;
 
 def sortCriteria(familyMemberRecord):
-    code = relationships.get(familyMemberRecord["Relation"], 100);
+    code = RELATIONSHIPS.get(familyMemberRecord["Relation"], 100);
     if (familyMemberRecord["PrimaryParent"] == 1):
         code = 1;
     return code;
@@ -124,12 +122,12 @@ def includeEmail(familyMemberRecord):
     return (sortCriteria(familyMemberRecord) < 100 and
             containsEmail(familyMemberRecord));
 
-def getFamilyEmails(familyId):
-    familyContactsURL = mainUrl + '/Family/' + str(familyId) + '/Contacts'
-    familyContactsDict = retrieve(familyContactsURL)
+def getFamilyEmails(familyId, token):
+    familyContactsURL = MAIN_URL + '/Family/' + str(familyId) + '/Contacts'
+    familyContactsDict = retrieve(familyContactsURL, token)
     #print(familyContactsDict)
 
-    # Sort family based on relationships
+    # Sort family based on RELATIONSHIPS
     familyContactsDict = sorted(familyContactsDict, 
                                 key=lambda family: sortCriteria(family));
     # pick up to three first family contacts that define an email
@@ -178,7 +176,9 @@ def createRecord(aClassRecord, classStudent, familyDict):
                    
     record = [classStudent["LastName"].strip(),
               classStudent["FirstName"].strip(),
-              formatClassName(aClassRecord["Name"].strip()),
+              formatClassName(aClassRecord["Name"].strip(),
+                              teacherLastName.strip(),
+                              teacherFirstName.strip()),
               aClassRecord["Section"].strip(),
               teacherLastName.strip(),
               teacherFirstName.strip(),
@@ -211,10 +211,10 @@ def saveRecords(allRecords):
 
 # In /Family/<Id>/Contacts I will get email addresses of both mother and father
 # Use token here.
-def extractRecords():
+def extractRecords(schoolId, token):
     try:
-        familyDict = getFamilyDict(mainUrl, schoolId)
-        classesDict = getClassDict(mainUrl, schoolId)
+        familyDict = getFamilyDict(MAIN_URL, schoolId, token)
+        classesDict = getClassDict(MAIN_URL, schoolId, token)
         
         allRecords=[];
         allRecords.append(createRecordHeader())
@@ -225,8 +225,8 @@ def extractRecords():
                           .format(aClassRecord["Name"], aClassRecord["Section"],
                                   aClassRecord["ID"])))
        
-            classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
-            classStudentsInfoDict = retrieve(classInfoUrl)
+            classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
+            classStudentsInfoDict = retrieve(classInfoUrl, token)
             logging.info('Retrieved {0} student records in class {1}'
                          .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
             logging.debug(classStudentsInfoDict)
@@ -238,10 +238,20 @@ def extractRecords():
         saveRecords(allRecords);
     except RestError as e:
         msg = "REST API error: {0}".format(e.value);
-        logging.exception(msg);
+        logging.exception(msg, e);
     except Exception as ex:
-        logging.exception("Connection failed");
+        logging.exception("Connection failed", ex);
+
+def parseArguments():
+    parser = argparse.ArgumentParser(description='Extract Family and School Data')
+    parser.add_argument('--school', dest='schoolId', action='store',
+                        type=int, required=True, help='Sycamore school ID.')
+    parser.add_argument('--token', dest='securityToken', action='store',
+                        required=True, help='Sycamore security token.')
+    args = parser.parse_args()
+    return (args.schoolId, args.securityToken)
 
 if __name__ == "__main__" :
     logging.basicConfig(level=logging.INFO)
-    extractRecords()
+    args = parseArguments()
+    extractRecords(args[0], args[1])
