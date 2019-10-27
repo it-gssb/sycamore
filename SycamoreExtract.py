@@ -211,33 +211,37 @@ def saveRecords(allRecords):
 
 # In /Family/<Id>/Contacts I will get email addresses of both mother and father
 # Use token here.
-logging.basicConfig(level=logging.INFO)
-try:
-    familyDict = getFamilyDict(mainUrl, schoolId)
-    classesDict = getClassDict(mainUrl, schoolId)
-    
-    allRecords=[];
-    allRecords.append(createRecordHeader())
-    for aClassRecord in classesDict["Period"]:
-        # clean name of record
-        aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
-        logging.debug(("Class Name = {}, Class Room = {}, Class ID = {}"
-                      .format(aClassRecord["Name"], aClassRecord["Section"],
-                              aClassRecord["ID"])))
-   
-        classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
-        classStudentsInfoDict = retrieve(classInfoUrl)
-        logging.info('Retrieved {0} student records in class {1}.'
-                     .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
-        logging.debug(classStudentsInfoDict)
+def extractRecords():
+    try:
+        familyDict = getFamilyDict(mainUrl, schoolId)
+        classesDict = getClassDict(mainUrl, schoolId)
         
-        # create records for all students
-        for classStudent in classStudentsInfoDict:
-            allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+        allRecords=[];
+        allRecords.append(createRecordHeader())
+        for aClassRecord in classesDict["Period"]:
+            # clean name of record
+            aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
+            logging.debug(("Class Name = {}, Class Room = {}, Class ID = {}"
+                          .format(aClassRecord["Name"], aClassRecord["Section"],
+                                  aClassRecord["ID"])))
+       
+            classInfoUrl = mainUrl + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
+            classStudentsInfoDict = retrieve(classInfoUrl)
+            logging.info('Retrieved {0} student records in class {1}'
+                         .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
+            logging.debug(classStudentsInfoDict)
             
-    saveRecords(allRecords);
-except RestError as e:
-    msg = "REST API error: {0}".format(e.value);
-    logging.exception(msg);
-except Exception as ex:
-    logging.exception("Connection failed");
+            # create records for all students
+            for classStudent in classStudentsInfoDict:
+                allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+                
+        saveRecords(allRecords);
+    except RestError as e:
+        msg = "REST API error: {0}".format(e.value);
+        logging.exception(msg);
+    except Exception as ex:
+        logging.exception("Connection failed");
+
+if __name__ == "__main__" :
+    logging.basicConfig(level=logging.INFO)
+    extractRecords()
