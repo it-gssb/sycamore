@@ -52,7 +52,7 @@ def retrieve(url, token):
     if not response.status_code == 200:
         msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
         raise RestError(msg)
-    info = correctUnicodeEscape(response.text)
+    info = correctUnicodeEscape(response.text).replace('\\','')
     logging.debug((info))
     record = [];
     if len(info) > 0:
@@ -62,16 +62,52 @@ def retrieve(url, token):
 def camelCase(string):
     return " ".join(a.capitalize() for a in re.split(r"[^a-zA-Z0-9&#\.-]", string))
 
+def getSortedContacts(familyId, token):
+    familyContactsURL = MAIN_URL + '/Family/' + str(familyId) + '/Contacts'
+    familyContactsDict = retrieve(familyContactsURL, token)
+
+    # Sort family based on RELATIONSHIPS
+    familyContactsDict = sorted(familyContactsDict, 
+                                key=lambda family: sortCriteria(family));
+    return familyContactsDict
+
+def getFamilyEmails(familyContacts):
+    # pick up to three first family contacts that define an email
+    firstThree = list(filter(lambda r: includeEmail(r), familyContacts))[:3];
+    result = [None, "", ""];
+    for i in range(0, len(firstThree)):
+        result[i] = firstThree[i]["Email"].strip();
+    assert result[0], "At least one parent email must exist"
+    return result
+
+def getParents(familyContacts, familyId):
+    parents = filter(lambda r: r["PrimaryParent"] == 1, familyContacts)
+    result = [None, None];
+    if len(parents) > 2:
+        logging.info("more than two primaries for family {}".format(familyId))
+    result[0:len(parents[:2])] = parents[:2]
+    assert result[0], "At least one parent must exist"
+    return result
+
 def getFamilyDict(MAIN_URL, schoolId, token):
     listFamiliesUrl = MAIN_URL + '/School/' + str(schoolId) + '/Families'
     listFamilies = retrieve(listFamiliesUrl, token)
     logging.info('Found {0} family records.'.format(str(len(listFamilies))))
+    
     familyDict = {}
     for family in listFamilies:
-        [primaryEmail, secondaryEmail, tertiaryEmail] = getFamilyEmails(family["ID"], token)
-        family['primaryEmail'] = primaryEmail
-        family['secondaryEmail'] = secondaryEmail
-        family['tertiaryEmail'] = tertiaryEmail
+        familyContacts     = getSortedContacts(family["ID"], token)
+        familyEmails       = getFamilyEmails(familyContacts)
+        [parent1, parent2] = getParents(familyContacts, family["Code"][:7])
+        family['primaryEmail']     = familyEmails[0]
+        family['secondaryEmail']   = familyEmails[1]
+        family['tertiaryEmail']    = familyEmails[2]
+        
+        family['parent1FirstName'] = parent1["FirstName"].strip()
+        family['parent1LastName']  = parent1["LastName"].strip()
+        family['parent2FirstName'] = parent2["FirstName"].strip() if parent2 else ''
+        family['parent2LastName']  = parent2["LastName"].strip()  if parent2 else ''
+
         familyDict[family["Code"]] = family
         logging.debug(family)
     return familyDict
@@ -121,31 +157,23 @@ def containsEmail(familyMemberRecord):
 def includeEmail(familyMemberRecord):
     return (sortCriteria(familyMemberRecord) < 100 and
             containsEmail(familyMemberRecord));
-
-def getFamilyEmails(familyId, token):
-    familyContactsURL = MAIN_URL + '/Family/' + str(familyId) + '/Contacts'
-    familyContactsDict = retrieve(familyContactsURL, token)
-    #print(familyContactsDict)
-
-    # Sort family based on RELATIONSHIPS
-    familyContactsDict = sorted(familyContactsDict, 
-                                key=lambda family: sortCriteria(family));
-    # pick up to three first family contacts that define an email
-    firstThree = list(filter(lambda r: includeEmail(r), familyContactsDict))[:3];
-    result = ["", "", ""];
-    for i in range(0, len(firstThree)):
-        result[i] = firstThree[i]["Email"].strip();
-    return result
-
+            
 def createRecordHeader() :
     header = ["StudentLastName",
               "StudentFirstName",
+              "Name",
               "Class",
               "Room",
               "TeacherLastName",
               "TeacherFirstName",
+              "LehrerIn",
               "FamilyID",
+              "Parent1LastName",
+              "Parent1FirstName",
+              "Parent2LastName",
+              "Parent2FirstName",
               "ParentNames",
+              "StudentLastNameIfDifferent",
               "PrimaryEmail",
               "SecondaryEmail",
               "TertiaryEmail",
@@ -169,6 +197,11 @@ def createRecord(aClassRecord, classStudent, familyDict):
         teacherFirstName = teacherNameTokens[0]
         teacherLastName = " ".join(teacherNameTokens[1:])
     
+    studentLastNameIfDifferent = ''
+    if (classStudent["LastName"].strip().lower() !=
+              family["parent1LastName"].strip().lower()):
+        studentLastNameIfDifferent = classStudent["LastName"].strip()
+    
     cityStateZip = '"' + \
                    camelCase(family["City"].strip()) + ", " + \
                    family["State"] + " " + \
@@ -176,14 +209,23 @@ def createRecord(aClassRecord, classStudent, familyDict):
                    
     record = [classStudent["LastName"].strip(),
               classStudent["FirstName"].strip(),
+              ('"' + classStudent["LastName"].strip() + ', ' +
+                     classStudent["FirstName"].strip() + '"'),
               formatClassName(aClassRecord["Name"].strip(),
                               teacherLastName.strip(),
                               teacherFirstName.strip()),
               aClassRecord["Section"].strip(),
               teacherLastName.strip(),
               teacherFirstName.strip(),
+              ('"' + teacherLastName.strip() + ', ' +
+                     teacherFirstName.strip() + '"'),
               familyCode,
+              family["parent1LastName"],
+              family["parent1FirstName"],
+              family["parent2LastName"],
+              family["parent2FirstName"],
               '"' + family["Name"].strip() + '"',
+              studentLastNameIfDifferent,
               family["primaryEmail"].strip(),
               family["secondaryEmail"].strip(),
               family["tertiaryEmail"].strip(),
@@ -240,7 +282,7 @@ def extractRecords(schoolId, token):
         msg = "REST API error: {0}".format(e.value);
         logging.exception(msg, e);
     except Exception as ex:
-        logging.exception("Connection failed", ex);
+        logging.exception("Connection failed");
 
 def parseArguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
