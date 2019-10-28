@@ -153,8 +153,18 @@ def createRecordHeader() :
               "CityStateZip"]
     
     return ",".join(header);
-                   
 
+def getAddress(family):
+    address = ''
+    addresses = [camelCase(family["Address"].strip()), 
+                 camelCase(family["Address2"].strip())]
+    if (addresses[0] == addresses[1]):
+        address = '"' + addresses[0] + '"'
+    else:
+        neAddresses = filter(lambda a:a.strip(), addresses)
+        address = '"' + ', '.join(neAddresses) + '"'
+    return address
+   
 def createRecord(aClassRecord, classStudent, familyDict):
     # family code is 7 characters long
     familyCode = classStudent["Code"][:7]
@@ -173,7 +183,7 @@ def createRecord(aClassRecord, classStudent, familyDict):
                    camelCase(family["City"].strip()) + ", " + \
                    family["State"] + " " + \
                    family["ZIP"][0:5].strip() + '"';
-                   
+
     record = [classStudent["LastName"].strip(),
               classStudent["FirstName"].strip(),
               formatClassName(aClassRecord["Name"].strip(),
@@ -187,9 +197,9 @@ def createRecord(aClassRecord, classStudent, familyDict):
               family["primaryEmail"].strip(),
               family["secondaryEmail"].strip(),
               family["tertiaryEmail"].strip(),
-              '"' + camelCase(family["Address"].strip()) + '"', 
+              getAddress(family), 
               cityStateZip]
-    
+
     return ",".join(record);
 
 def validateClassDetails(classes):
