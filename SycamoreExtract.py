@@ -161,12 +161,12 @@ def includeEmail(familyMemberRecord):
 def createRecordHeader() :
     header = ["StudentLastName",
               "StudentFirstName",
-              "Name",
+              "StudentName",
               "Class",
               "Room",
               "TeacherLastName",
               "TeacherFirstName",
-              "LehrerIn",
+              "TeacherName",
               "FamilyID",
               "Parent1LastName",
               "Parent1FirstName",
@@ -174,9 +174,9 @@ def createRecordHeader() :
               "Parent2FirstName",
               "ParentNames",
               "StudentLastNameIfDifferent",
-              "PrimaryEmail",
-              "SecondaryEmail",
-              "TertiaryEmail",
+              "PrimaryParentEmail",
+              "SecondaryParentEmail",
+              "TertiaryParentEmail",
               "StreetAddress", 
               "CityStateZip"]
     
