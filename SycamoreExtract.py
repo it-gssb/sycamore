@@ -276,23 +276,30 @@ def extractRecords(schoolId, token):
             logging.debug(("Class Name = {}, Class Room = {}, Class ID = {}"
                           .format(aClassRecord["Name"], aClassRecord["Section"],
                                   aClassRecord["ID"])))
-       
-            classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
-            classStudentsInfoDict = retrieve(classInfoUrl, token)
-            logging.info('Retrieved {0} student records in class {1}'
-                         .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
-            logging.debug(classStudentsInfoDict)
-            
-            # create records for all students
-            for classStudent in classStudentsInfoDict:
-                allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+            try:
+                classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
+                classStudentsInfoDict = retrieve(classInfoUrl, token)
+                logging.info('Retrieved {0} student records in class {1}'
+                             .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
+                logging.debug(classStudentsInfoDict)
+                
+                # create records for all students
+                for classStudent in classStudentsInfoDict:
+                    allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+                    
+            except RestError as e:
+                msg = "REST API error when retrieving {0} student records " + \
+                      "in class {1} using URL {2}: {3} {4}" \
+                      .format(str(len(classStudentsInfoDict)), aClassRecord["Name"],
+                              e.value, e.__class__, e.__doc__);
+                logging.debug(msg);
+                logging.warn('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
         saveRecords(allRecords);
-    except RestError as e:
-        msg = "REST API error: {0}".format(e.value);
-        logging.exception(msg, e);
     except Exception as ex:
-        logging.exception("Connection failed");
+        msg = "Connection failed: {0}, {1}, {2}".format(ex.value, ex.__class__,
+                                                        ex.__doc__);
+        logging.exception(msg);
 
 def parseArguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
