@@ -194,55 +194,64 @@ def getAddress(family):
     return address
    
 def createRecord(aClassRecord, classStudent, familyDict):
-    # family code is 7 characters long
-    familyCode = classStudent["Code"][:7]
-    family = familyDict.get(familyCode);
-    family["State"] = formatStateName(family["State"]);
+    try:
+        # family code is 7 characters long
+        familyCode = classStudent["Code"][:7]
+        family = familyDict.get(familyCode);
+        family["State"] = formatStateName(family["State"]);
+        
+        teacherFullName = aClassRecord["PrimaryTeacher"]
+        teacherFirstName = ""
+        teacherLastName  = ""
+        if (teacherFullName.strip()):
+            teacherNameTokens = teacherFullName.split()
+            teacherFirstName = teacherNameTokens[0]
+            teacherLastName = " ".join(teacherNameTokens[1:])
+        
+        studentLastNameIfDifferent = ''
+        if (classStudent["LastName"].strip().lower() !=
+                  family["parent1LastName"].strip().lower()):
+            studentLastNameIfDifferent = classStudent["LastName"].strip()
+        
+        cityStateZip = '"' + \
+                       camelCase(family["City"].strip()) + ", " + \
+                       family["State"] + " " + \
+                       family["ZIP"][0:5].strip() + '"';
     
-    teacherFullName = aClassRecord["PrimaryTeacher"]
-    teacherFirstName = ""
-    teacherLastName  = ""
-    if (teacherFullName.strip()):
-        teacherNameTokens = teacherFullName.split()
-        teacherFirstName = teacherNameTokens[0]
-        teacherLastName = " ".join(teacherNameTokens[1:])
-    
-    studentLastNameIfDifferent = ''
-    if (classStudent["LastName"].strip().lower() !=
-              family["parent1LastName"].strip().lower()):
-        studentLastNameIfDifferent = classStudent["LastName"].strip()
-    
-    cityStateZip = '"' + \
-                   camelCase(family["City"].strip()) + ", " + \
-                   family["State"] + " " + \
-                   family["ZIP"][0:5].strip() + '"';
-
-    record = [classStudent["LastName"].strip(),
-              classStudent["FirstName"].strip(),
-              ('"' + classStudent["LastName"].strip() + ', ' +
-                     classStudent["FirstName"].strip() + '"'),
-              formatClassName(aClassRecord["Name"].strip(),
-                              teacherLastName.strip(),
-                              teacherFirstName.strip()),
-              aClassRecord["Section"].strip(),
-              teacherLastName.strip(),
-              teacherFirstName.strip(),
-              ('"' + teacherLastName.strip() + ', ' +
-                     teacherFirstName.strip() + '"'),
-              familyCode,
-              family["parent1LastName"],
-              family["parent1FirstName"],
-              family["parent2LastName"],
-              family["parent2FirstName"],
-              '"' + family["Name"].strip() + '"',
-              studentLastNameIfDifferent,
-              family["primaryEmail"].strip(),
-              family["secondaryEmail"].strip(),
-              family["tertiaryEmail"].strip(),
-              getAddress(family), 
-              cityStateZip]
-
-    return ",".join(record);
+        record = [classStudent["LastName"].strip(),
+                  classStudent["FirstName"].strip(),
+                  ('"' + classStudent["LastName"].strip() + ', ' +
+                         classStudent["FirstName"].strip() + '"'),
+                  formatClassName(aClassRecord["Name"].strip(),
+                                  teacherLastName.strip(),
+                                  teacherFirstName.strip()),
+                  aClassRecord["Section"].strip(),
+                  teacherLastName.strip(),
+                  teacherFirstName.strip(),
+                  ('"' + teacherLastName.strip() + ', ' +
+                         teacherFirstName.strip() + '"'),
+                  familyCode,
+                  family["parent1LastName"],
+                  family["parent1FirstName"],
+                  family["parent2LastName"],
+                  family["parent2FirstName"],
+                  '"' + family["Name"].strip() + '"',
+                  studentLastNameIfDifferent,
+                  family["primaryEmail"].strip(),
+                  family["secondaryEmail"].strip(),
+                  family["tertiaryEmail"].strip(),
+                  getAddress(family), 
+                  cityStateZip]
+    except TypeError: 
+        logging.exception("Incorrect family record for code {0} and student {1} {2}"
+                           .format(familyCode, 
+                                   classStudent["FirstName"],
+                                   classStudent["LastName"]));
+        record = [];
+    finally:
+        if len(record) == 0:
+            return "";
+        return ",".join(record);
 
 def validateClassDetails(classes):
     for aClassRecord in classes:
@@ -285,7 +294,9 @@ def extractRecords(schoolId, token):
                 
                 # create records for all students
                 for classStudent in classStudentsInfoDict:
-                    allRecords.append(createRecord(aClassRecord, classStudent, familyDict))
+                    r = createRecord(aClassRecord, classStudent, familyDict);
+                    if len(r)>0:
+                        allRecords.append(r);
                     
             except RestError as e:
                 msg = "REST API error when retrieving {0} student records " + \
