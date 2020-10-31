@@ -77,7 +77,10 @@ def getFamilyEmails(familyContacts):
     result = [None, "", ""];
     for i in range(0, len(firstThree)):
         result[i] = firstThree[i]["Email"].strip();
-    assert result[0], "At least one parent email must exist"
+
+    if (not result[0]):
+        logging.warn("No Email defined for {0} {1}".format(familyContacts[0]["LastName"],
+                                                           familyContacts[0]["FirstName"]))
     return result
 
 def getParents(familyContacts, familyId):
@@ -300,16 +303,15 @@ def extractRecords(schoolId, token):
                     
             except RestError as e:
                 msg = "REST API error when retrieving {0} student records " + \
-                      "in class {1} using URL {2}: {3} {4}" \
+                      "in class {1} with message {2}" \
                       .format(str(len(classStudentsInfoDict)), aClassRecord["Name"],
-                              e.value, e.__class__, e.__doc__);
+                              e.message);
                 logging.debug(msg);
                 logging.warn('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
         saveRecords(allRecords);
     except Exception as ex:
-        msg = "Connection failed: {0}, {1}, {2}".format(ex.value, ex.__class__,
-                                                        ex.__doc__);
+        msg = "Connection failed: {0}".format(ex.message);
         logging.exception(msg);
 
 def parseArguments():
