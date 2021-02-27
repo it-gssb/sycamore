@@ -2,8 +2,6 @@ import enum
 import argparse
 import logging
 import pandas
-import csv
-# import openpyxl # needed for Excel spreadsheet export
 
 class FileFormat(enum.Enum):
     csv=1

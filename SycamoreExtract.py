@@ -26,16 +26,16 @@ def correctUnicodeEscape(text):
     newText = '';
     startIndex = 0;
     # find all occurrences of the pattern \uhhhh in text
-    for m in re.finditer('\\u[\\da-f]{4}', text):
+    for m in re.finditer(r'\\u[0-9a-f]{4}', text): 
         # attach text between patterns to result string
-        newText += text[startIndex:m.start()-1]
+        newText += text[startIndex:m.start()]
         startIndex = m.end()
         # convert \uhhhh with 4 digit hex number to unicode
-        hexnum = '0x' + text[m.start()+1:m.end()]
+        hexnum = '0x' + text[m.start()+2:m.end()]
         uChar = ''
         # only convert and add unicode 
         if int(hexnum, 0) <= 255:
-            uChar = unichr(int(hexnum, 0))
+            uChar = chr(int(hexnum, 0))
             logging.debug("Converted hex " + hexnum +
                          " to special character '" + uChar + "'")
         # attach converted unicode character to return string
@@ -79,12 +79,12 @@ def getFamilyEmails(familyContacts):
         result[i] = firstThree[i]["Email"].strip();
 
     if (not result[0]):
-        logging.warn("No Email defined for {0} {1}".format(familyContacts[0]["LastName"],
+        logging.warning("No Email defined for {0} {1}".format(familyContacts[0]["LastName"],
                                                            familyContacts[0]["FirstName"]))
     return result
 
-def getParents(familyContacts, familyId):
-    parents = filter(lambda r: r["PrimaryParent"] == 1, familyContacts)
+def getParents(familyContacts : list, familyId):
+    parents = list(filter(lambda r: r["PrimaryParent"] == 1, familyContacts))
     result = [None, None];
     if len(parents) > 2:
         logging.info("more than two primaries for family {}".format(familyId))
@@ -261,12 +261,12 @@ def validateClassDetails(classes):
         teacherFullName = aClassRecord["PrimaryTeacher"]
         # Report Missing Teacher details
         if (not teacherFullName.strip()):
-            logging.warn('Warning: Missing teacher name in record for class {0}'
+            logging.warning('Warning: Missing teacher name in record for class {0}'
                          .format(aClassRecord["Name"]))
             
 def saveRecords(allRecords):
     for record in allRecords:
-        print record;
+        print (record);
 
 # Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, 
 # FamilyId, ParentName, Primary Parent Name, VolunteerAssignment, Address, 
@@ -307,11 +307,11 @@ def extractRecords(schoolId, token):
                       .format(str(len(classStudentsInfoDict)), aClassRecord["Name"],
                               e.message);
                 logging.debug(msg);
-                logging.warn('No student records available for class {0}'.format(aClassRecord["Name"]));
+                logging.warning('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
         saveRecords(allRecords);
     except Exception as ex:
-        msg = "Connection failed: {0}".format(ex.message);
+        msg = "Connection failed: {0}".format(ex);
         logging.exception(msg);
 
 def parseArguments():
