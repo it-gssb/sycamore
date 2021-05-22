@@ -283,7 +283,7 @@ def parseArguments():
     parser.add_argument('-s', '--sourceDir', dest='sourceDir', action='store',
                         type=str, required=True,
                         help='source directory with SIS Clever files')
-    parser.add_argument('-t', '--targetDir', dest='targetDir', action='append',
+    parser.add_argument('-t', '--targetDir', dest='targetDir', action='store',
                         type=str, default=None,
                         help='target directory with SDS Clever files')
 
