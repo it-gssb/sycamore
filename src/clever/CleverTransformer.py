@@ -40,7 +40,7 @@ class CSVTransformer(ABC):
         return df
 
     def loadCSVFileSubset(self, path, subset):
-        data = pd.read_csv (path)
+        data = pd.read_csv (path, dtype=str)
         df = pd.DataFrame(data, columns = subset)
         return df
     
