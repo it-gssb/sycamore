@@ -49,7 +49,9 @@ def correctUnicodeEscape(text):
 def retrieve(url, token):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
                                           'Content-type': 'application/json; charset=utf-8'});
-    if not response.status_code == 200:
+    if response.status_code == 204:
+        logging.warn("No content found for " + url)
+    elif not response.status_code == 200:
         msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
         raise RestError(msg)
     info = correctUnicodeEscape(response.text).replace('\\','')
