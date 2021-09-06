@@ -58,6 +58,7 @@ def retrieve(url, token):
     logging.debug((info))
     record = [];
     if len(info) > 0:
+        logging.debug(info)
         record = literal_eval(info)
     return record;
 
@@ -198,7 +199,7 @@ def getAddress(family):
         address = '"' + ', '.join(neAddresses) + '"'
     return address
    
-def createRecord(aClassRecord, classStudent, familyDict):
+def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
     try:
         # family code is 7 characters long
         familyCode = classStudent["Code"][:7]
@@ -223,6 +224,13 @@ def createRecord(aClassRecord, classStudent, familyDict):
                        family["State"] + " " + \
                        family["ZIP"][0:5].strip() + '"';
     
+        facility = classDetailDict.get("Facility", None);
+        room = ""
+        if facility:
+            room = facility["Name"].strip();
+        else:
+            logging.info('No room for class ' + aClassRecord["Name"].strip())
+                         
         record = [classStudent["LastName"].strip(),
                   classStudent["FirstName"].strip(),
                   ('"' + classStudent["LastName"].strip() + ', ' +
@@ -230,7 +238,7 @@ def createRecord(aClassRecord, classStudent, familyDict):
                   formatClassName(aClassRecord["Name"].strip(),
                                   teacherLastName.strip(),
                                   teacherFirstName.strip()),
-                  aClassRecord["Section"].strip(),
+                  room,
                   teacherLastName.strip(),
                   teacherFirstName.strip(),
                   ('"' + teacherLastName.strip() + ', ' +
@@ -291,6 +299,9 @@ def extractRecords(schoolId, token):
                           .format(aClassRecord["Name"], aClassRecord["Section"],
                                   aClassRecord["ID"])))
             try:
+                classDetailUrl = MAIN_URL + '/School/'+ str(schoolId) +'/Classes/' + str(aClassRecord["ID"]) 
+                classDetailDict = retrieve(classDetailUrl, token)
+                
                 classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
                 classStudentsInfoDict = retrieve(classInfoUrl, token)
                 logging.info('Retrieved {0} student records in class {1}'
@@ -299,7 +310,7 @@ def extractRecords(schoolId, token):
                 
                 # create records for all students
                 for classStudent in classStudentsInfoDict:
-                    r = createRecord(aClassRecord, classStudent, familyDict);
+                    r = createRecord(aClassRecord, classDetailDict, classStudent, familyDict);
                     if len(r)>0:
                         allRecords.append(r);
                     
