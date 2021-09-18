@@ -40,7 +40,7 @@ class CSVTransformer(ABC):
         return df
 
     def loadCSVFileSubset(self, path, subset):
-        data = pd.read_csv (path)   
+        data = pd.read_csv (path, dtype=str)
         df = pd.DataFrame(data, columns = subset)
         return df
     
@@ -111,7 +111,7 @@ class SIS2SDS(CSVTransformer):
         columns = ['Student_id', 'Contact_email', 'Contact_relationship']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
 
         # remove duplicate rows
@@ -126,7 +126,7 @@ class SIS2SDS(CSVTransformer):
         self.changeColumnName(dataframe, 'Contact_email', 'Email')
         self.changeColumnName(dataframe, 'Contact_relationship', 'Role')
         
-        target = self.targetDir + '/' + f'{targetFile}.csv'
+        target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
     def transformUser(self):
@@ -138,7 +138,7 @@ class SIS2SDS(CSVTransformer):
                    'Contact_sis_id']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
 
         # remove duplicate rows
@@ -163,7 +163,7 @@ class SIS2SDS(CSVTransformer):
         # drop original column used for deriving new columns
         self.dropColumn(dataframe, 'Contact_name')
         
-        target = self.targetDir + '/' + f'{targetFile}.csv'
+        target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
     def formatLastName(self, name):
@@ -186,7 +186,7 @@ class SIS2SDS(CSVTransformer):
                    'Grade', 'State_id', 'Status', 'Dob']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
 
         # rename existing column
@@ -199,7 +199,7 @@ class SIS2SDS(CSVTransformer):
         derive = lambda row: self.createEmailAddress(row)
         self.addColumnExpr(dataframe, 2, 'Username', derive)
         
-        target = self.targetDir + '/' + f'{sourceFile}.csv'
+        target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
     
     def transformSections(self):
@@ -210,13 +210,13 @@ class SIS2SDS(CSVTransformer):
                    'Term_start', 'Term_end', 'Course_name', 'Subject', 'Period']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
         
         # add missing column and set default value
         self.addColumn(dataframe, len(columns), 'Status', 'Active')
         
-        target = self.targetDir + '/' + f'{sourceFile}.csv'
+        target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
     
         
@@ -224,8 +224,8 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'enrollments'
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
-        target = self.targetDir + '/' + f'{sourceFile}.csv'
+        source = os.path.join(self.sourceDir, fileName)
+        target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.copyFile(source, target)
         
     def transformTeachers(self):
@@ -236,13 +236,13 @@ class SIS2SDS(CSVTransformer):
                    'Last_name', 'Teacher_email', 'Title']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
         
         deriveUsername = lambda row: row.Teacher_email.strip()
         self.addColumnExpr(dataframe, 2, 'Username', deriveUsername)
         
-        target = self.targetDir + '/' + f'{sourceFile}.csv'
+        target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
         
     def transformSchool(self):
@@ -253,13 +253,13 @@ class SIS2SDS(CSVTransformer):
                    'Principal', 'Principal_email']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = self.sourceDir + '/' + fileName
+        source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
         
         # add missing column and set default value
         self.addColumn(dataframe, 2, 'School_number', 2132)
         
-        target = self.targetDir + '/' + f'{sourceFile}.csv'
+        target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
     
         
@@ -283,14 +283,14 @@ def parseArguments():
     parser.add_argument('-s', '--sourceDir', dest='sourceDir', action='store',
                         type=str, required=True,
                         help='source directory with SIS Clever files')
-    parser.add_argument('-t', '--targetDir', dest='targetDir', action='append',
+    parser.add_argument('-t', '--targetDir', dest='targetDir', action='store',
                         type=str, default=None,
                         help='target directory with SDS Clever files')
 
     args = parser.parse_args()
     
     if not args.targetDir:
-        args.targetDir = args.sourceDir + '/SDS'
+        args.targetDir = os.path.join(args.sourceDir, '/SDS')
         
     return args
 
@@ -299,4 +299,3 @@ if __name__ == "__main__" :
 
     transformer = SIS2SDS(args.sourceDir, args.targetDir)
     transformer.transform()
-    
