@@ -103,69 +103,6 @@ class SIS2SDS(CSVTransformer):
         a = name.split(' ')
         return ' '.join(a[0:len(a)-1])
     
-    def transformParentGuardianRelation(self):
-        sourceFile = 'students'
-        targetFile = 'guardianrelationship'
-        
-        # defjne subset of columns to be loaded
-        columns = ['Student_id', 'Contact_email', 'Contact_relationship']
-        
-        fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = os.path.join(self.sourceDir, fileName)
-        dataframe = self.loadCSVFileSubset(source, columns)
-
-        # remove duplicate rows
-        self.removeDuplicates(dataframe)
-        
-        # remove rows without email
-        include = lambda df: pd.notna(df.Contact_email)
-        dataframe = self.keepRows(dataframe, include)
-
-        # rename existing column
-        self.changeColumnName(dataframe, 'Student_id', 'SIS ID')
-        self.changeColumnName(dataframe, 'Contact_email', 'Email')
-        self.changeColumnName(dataframe, 'Contact_relationship', 'Role')
-        
-        target = os.path.join(self.targetDir, f'{targetFile}.csv')
-        self.saveCSVFile(dataframe, target)
-        
-    def transformUser(self):
-        sourceFile = 'students'
-        targetFile = 'user'
-        
-        # defjne subset of columns to be loaded
-        columns = ['Contact_email', 'Contact_name', 'Contact_phone',
-                   'Contact_sis_id']
-        
-        fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
-        source = os.path.join(self.sourceDir, fileName)
-        dataframe = self.loadCSVFileSubset(source, columns)
-
-        # remove duplicate rows
-        self.removeDuplicates(dataframe)
-
-        # remove rows without email
-        include = lambda df: pd.notna(df.Contact_email)
-        dataframe = self.keepRows(dataframe, include)
-
-        # rename existing column
-        self.changeColumnName(dataframe, 'Contact_email', 'Email')
-        self.changeColumnName(dataframe, 'Contact_phone', 'Phone')
-        self.changeColumnName(dataframe, 'Contact_sis_id', 'SIS ID')
-        
-        # add missing column and set default value
-        deriveFirst = lambda row: self.getFirst(row.Contact_name.strip())
-        self.addColumnExpr(dataframe, 2, 'First Name', deriveFirst)
-        
-        deriveLast = lambda row: self.getLast(row.Contact_name.strip())
-        self.addColumnExpr(dataframe, 3, 'Last Name', deriveLast)
-
-        # drop original column used for deriving new columns
-        self.dropColumn(dataframe, 'Contact_name')
-        
-        target = os.path.join(self.targetDir, f'{targetFile}.csv')
-        self.saveCSVFile(dataframe, target)
-        
     def formatLastName(self, name):
         if name[:4] in ('van ', 'Van ', 'von ', 'Von '):
             return name.replace(' ', '')
@@ -273,9 +210,6 @@ class SIS2SDS(CSVTransformer):
         self.transformEnrollments()
         self.transformSections()
         self.transformStudents()
-        self.transformUser()
-        self.transformParentGuardianRelation()
-
         
         
 def parseArguments():
