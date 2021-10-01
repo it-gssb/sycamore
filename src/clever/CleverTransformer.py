@@ -181,9 +181,9 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'students'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Student_id', 'First_name', 'Last_name',
-                   'Middle_name', 'Student_email', 'Student_number',
-                   'Grade', 'State_id', 'Status', 'Dob']
+        columns = ['Student_id', 'School_id', 'Student_number', 'Dob',
+                   'Grade', 'State_id', 'Student_email', 'First_name',
+                   'Last_name', 'Middle_name', 'Status']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
@@ -206,7 +206,7 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'sections'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Section_id', 'Name', 'Teacher_id', 'Term_name', 
+        columns = ['Section_id', 'School_id', 'Teacher_id', 'Name', 'Term_name',
                    'Term_start', 'Term_end', 'Course_name', 'Subject', 'Period']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
@@ -232,8 +232,8 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'teachers'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Teacher_id', 'First_name',
-                   'Last_name', 'Teacher_email', 'Title']
+        columns = ['Teacher_id', 'School_id', 'Teacher_email',
+                   'Title', 'Last_name', 'First_name']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
