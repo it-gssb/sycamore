@@ -167,10 +167,18 @@ class SIS2SDS(CSVTransformer):
         self.saveCSVFile(dataframe, target)
         
     def formatLastName(self, name):
-        if name[:4] in ('van ', 'Van ', 'von ', 'Von '):
-            return name.replace(' ', '')
-        else:
-            return name.replace(' ', '-')
+        name = name.replace('Freiin von ', 'Von')
+        name = name.replace(' Nguyen', 'Nguyen')
+        name = name.replace(' zu ', 'zu')
+        name = name.replace(' Zu ', 'Zu')
+        name = name.replace('de ', 'de')
+        name = name.replace('De ', 'De')
+        name = name.replace('van ', 'van')
+        name = name.replace('von ', 'von')
+        name = name.replace('Van ', 'Van')
+        name = name.replace('Von ', 'Von')
+
+        return name.replace(' ', '-')
         
     def createEmailAddress(self, row, domain):
         return (row.First_name.strip().replace(" ", "") + '.'
