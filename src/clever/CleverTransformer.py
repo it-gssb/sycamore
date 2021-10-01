@@ -278,6 +278,9 @@ class SIS2SDS(CSVTransformer):
         # add missing column and set default value
         self.addColumn(dataframe, 2, 'School_number', 2132)
         
+        self.dropColumn(dataframe, 'Principal_email')
+        self.addColumn(dataframe, len(columns), 'Principal_email', 'principal@gssb.org')
+
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
     
