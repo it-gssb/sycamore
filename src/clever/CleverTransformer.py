@@ -172,10 +172,16 @@ class SIS2SDS(CSVTransformer):
         else:
             return name.replace(' ', '-')
         
-    def createEmailAddress(self, row):
+    def createEmailAddress(self, row, domain):
         return (row.First_name.strip().replace(" ", "") + '.'
                 + self.formatLastName(row.Last_name.strip()) 
-                + '@student.gssb.org')
+                + domain)
+
+    def createTeacherEmailAddress(self, row):
+        if row.Teacher_email.strip().endswith('@gssb.org'):
+            return row.Teacher_email.strip()
+
+        return self.createEmailAddress(row, '@gssb.org')
         
     def transformStudents(self):
         sourceFile = 'students'
@@ -196,7 +202,7 @@ class SIS2SDS(CSVTransformer):
         self.removeDuplicates(dataframe)
         
         # add missing column and set default value
-        derive = lambda row: self.createEmailAddress(row)
+        derive = lambda row: self.createEmailAddress(row, '@student.gssb.org')
         self.addColumnExpr(dataframe, 2, 'Username', derive)
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
@@ -239,8 +245,13 @@ class SIS2SDS(CSVTransformer):
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
         
-        deriveUsername = lambda row: row.Teacher_email.strip()
-        self.addColumnExpr(dataframe, 2, 'Username', deriveUsername)
+        deriveUsername = lambda row: self.createTeacherEmailAddress(row)
+        self.addColumnExpr(dataframe, 3, 'Username', deriveUsername)
+
+        deriveEmail = lambda row: self.createTeacherEmailAddress(row)
+        self.addColumnExpr(dataframe, 2, 'Teacher_email_new', deriveEmail)
+        self.dropColumn(dataframe, 'Teacher_email')
+        self.changeColumnName(dataframe, 'Teacher_email_new', 'Teacher_email')
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
