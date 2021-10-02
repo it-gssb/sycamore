@@ -102,6 +102,25 @@ class SIS2SDS(CSVTransformer):
         
         a = name.split(' ')
         return ' '.join(a[0:len(a)-1])
+
+    def getRole(self, relationship : str):
+        if not isinstance(relationship, str):
+            # Default value
+            return 'Parent'
+
+        relationship = relationship.strip()
+
+        if relationship == 'Mother':
+            return 'Parent'
+        if relationship == 'Father':
+            return 'Parent'
+        if relationship == 'Parents':
+            return 'Parent'
+        if relationship == 'Grandmother':
+            return 'Relative'
+
+        print('Unknown relationship "%s"' % (relationship))
+        return 'Parent'
     
     def transformParentGuardianRelation(self):
         sourceFile = 'students'
@@ -113,9 +132,6 @@ class SIS2SDS(CSVTransformer):
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
-
-        # remove duplicate rows
-        self.removeDuplicates(dataframe)
         
         # remove rows without email
         include = lambda df: pd.notna(df.Contact_email)
@@ -124,8 +140,16 @@ class SIS2SDS(CSVTransformer):
         # rename existing column
         self.changeColumnName(dataframe, 'Student_id', 'SIS ID')
         self.changeColumnName(dataframe, 'Contact_email', 'Email')
-        self.changeColumnName(dataframe, 'Contact_relationship', 'Role')
-        
+
+        # Create Role from Contact_relationship
+        deriveFirst = lambda row: self.getRole(row.Contact_relationship)
+        self.addColumnExpr(dataframe, len(columns), 'Role', deriveFirst)
+
+        self.dropColumn(dataframe, 'Contact_relationship')
+
+        # remove duplicate rows
+        self.removeDuplicates(dataframe)
+
         target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
