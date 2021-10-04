@@ -93,15 +93,13 @@ class SIS2SDS(CSVTransformer):
         if name.strip() == '':
             return ''
         
-        a = name.split(' ')
-        return a[len(a)-1]
+        return name.split(' ', 1)[1].strip()
     
     def getFirst(self, name : str):
         if name.strip() == '':
             return ''
         
-        a = name.split(' ')
-        return ' '.join(a[0:len(a)-1])
+        return name.split(' ', 1)[0].strip()
 
     def getRole(self, relationship : str):
         if not isinstance(relationship, str):
