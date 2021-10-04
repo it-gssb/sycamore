@@ -205,7 +205,7 @@ class SIS2SDS(CSVTransformer):
     def createEmailAddress(self, row, domain):
         return (row.First_name.strip().replace(" ", "") + '.'
                 + self.formatLastName(row.Last_name.strip()) 
-                + domain)
+                + domain).replace("'", "")
 
     def createTeacherEmailAddress(self, row):
         if row.Teacher_email.strip().endswith('@gssb.org'):
