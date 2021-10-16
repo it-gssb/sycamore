@@ -9,8 +9,14 @@ import argparse
 import logging
 import os
 import shutil
+import sys
 
 import pandas as pd
+
+# append the path of the parent directory
+sys.path.append(".")
+
+from lib import Generators
 
 
 logging.basicConfig(level=logging.WARN)
@@ -188,30 +194,11 @@ class SIS2SDS(CSVTransformer):
         target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
-    def formatLastName(self, name):
-        name = name.replace('Freiin von ', 'Von')
-        name = name.replace(' Nguyen', 'Nguyen')
-        name = name.replace(' zu ', 'zu')
-        name = name.replace(' Zu ', 'Zu')
-        name = name.replace('de ', 'de')
-        name = name.replace('De ', 'De')
-        name = name.replace('van ', 'van')
-        name = name.replace('von ', 'von')
-        name = name.replace('Van ', 'Van')
-        name = name.replace('Von ', 'Von')
-
-        return name.replace(' ', '-')
-        
-    def createEmailAddress(self, row, domain):
-        return (row.First_name.strip().replace(" ", "") + '.'
-                + self.formatLastName(row.Last_name.strip()) 
-                + domain).replace("'", "")
+    def createStudentEmailAddress(self, row):
+        return Generators.createStudentEmailAddress(row.First_name, row.Last_name)
 
     def createTeacherEmailAddress(self, row):
-        if row.Teacher_email.strip().endswith('@gssb.org'):
-            return row.Teacher_email.strip()
-
-        return self.createEmailAddress(row, '@gssb.org')
+        return Generators.createTeacherEmailAddress(row.First_name, row.Last_name, row.Teacher_email)
         
     def transformStudents(self):
         sourceFile = 'students'
@@ -232,7 +219,7 @@ class SIS2SDS(CSVTransformer):
         self.removeDuplicates(dataframe)
         
         # add missing column and set default value
-        derive = lambda row: self.createEmailAddress(row, '@student.gssb.org')
+        derive = lambda row: self.createStudentEmailAddress(row)
         self.addColumnExpr(dataframe, 2, 'Username', derive)
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
