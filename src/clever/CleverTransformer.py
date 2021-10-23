@@ -93,15 +93,32 @@ class SIS2SDS(CSVTransformer):
         if name.strip() == '':
             return ''
         
-        a = name.split(' ')
-        return a[len(a)-1]
+        return name.split(' ', 1)[1].strip()
     
     def getFirst(self, name : str):
         if name.strip() == '':
             return ''
         
-        a = name.split(' ')
-        return ' '.join(a[0:len(a)-1])
+        return name.split(' ', 1)[0].strip()
+
+    def getRole(self, relationship : str):
+        if not isinstance(relationship, str):
+            # Default value
+            return 'Parent'
+
+        relationship = relationship.strip()
+
+        if relationship == 'Mother':
+            return 'Parent'
+        if relationship == 'Father':
+            return 'Parent'
+        if relationship == 'Parents':
+            return 'Parent'
+        if relationship == 'Grandmother':
+            return 'Relative'
+
+        print('Unknown relationship "%s"' % (relationship))
+        return 'Parent'
     
     def transformParentGuardianRelation(self):
         sourceFile = 'students'
@@ -113,9 +130,6 @@ class SIS2SDS(CSVTransformer):
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
-
-        # remove duplicate rows
-        self.removeDuplicates(dataframe)
         
         # remove rows without email
         include = lambda df: pd.notna(df.Contact_email)
@@ -124,8 +138,16 @@ class SIS2SDS(CSVTransformer):
         # rename existing column
         self.changeColumnName(dataframe, 'Student_id', 'SIS ID')
         self.changeColumnName(dataframe, 'Contact_email', 'Email')
-        self.changeColumnName(dataframe, 'Contact_relationship', 'Role')
-        
+
+        # Create Role from Contact_relationship
+        deriveFirst = lambda row: self.getRole(row.Contact_relationship)
+        self.addColumnExpr(dataframe, len(columns), 'Role', deriveFirst)
+
+        self.dropColumn(dataframe, 'Contact_relationship')
+
+        # remove duplicate rows
+        self.removeDuplicates(dataframe)
+
         target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
@@ -167,23 +189,37 @@ class SIS2SDS(CSVTransformer):
         self.saveCSVFile(dataframe, target)
         
     def formatLastName(self, name):
-        if name[:4] in ('van ', 'Van ', 'von ', 'Von '):
-            return name.replace(' ', '')
-        else:
-            return name.replace(' ', '-')
+        name = name.replace('Freiin von ', 'Von')
+        name = name.replace(' Nguyen', 'Nguyen')
+        name = name.replace(' zu ', 'zu')
+        name = name.replace(' Zu ', 'Zu')
+        name = name.replace('de ', 'de')
+        name = name.replace('De ', 'De')
+        name = name.replace('van ', 'van')
+        name = name.replace('von ', 'von')
+        name = name.replace('Van ', 'Van')
+        name = name.replace('Von ', 'Von')
+
+        return name.replace(' ', '-')
         
-    def createEmailAddress(self, row):
+    def createEmailAddress(self, row, domain):
         return (row.First_name.strip().replace(" ", "") + '.'
                 + self.formatLastName(row.Last_name.strip()) 
-                + '@student.gssb.org')
+                + domain).replace("'", "")
+
+    def createTeacherEmailAddress(self, row):
+        if row.Teacher_email.strip().endswith('@gssb.org'):
+            return row.Teacher_email.strip()
+
+        return self.createEmailAddress(row, '@gssb.org')
         
     def transformStudents(self):
         sourceFile = 'students'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Student_id', 'First_name', 'Last_name',
-                   'Middle_name', 'Student_email', 'Student_number',
-                   'Grade', 'State_id', 'Status', 'Dob']
+        columns = ['Student_id', 'School_id', 'Student_number', 'Dob',
+                   'Grade', 'State_id', 'Student_email', 'First_name',
+                   'Last_name', 'Middle_name', 'Status']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
@@ -196,7 +232,7 @@ class SIS2SDS(CSVTransformer):
         self.removeDuplicates(dataframe)
         
         # add missing column and set default value
-        derive = lambda row: self.createEmailAddress(row)
+        derive = lambda row: self.createEmailAddress(row, '@student.gssb.org')
         self.addColumnExpr(dataframe, 2, 'Username', derive)
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
@@ -206,7 +242,7 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'sections'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Section_id', 'Name', 'Teacher_id', 'Term_name', 
+        columns = ['Section_id', 'School_id', 'Teacher_id', 'Name', 'Term_name',
                    'Term_start', 'Term_end', 'Course_name', 'Subject', 'Period']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
@@ -232,15 +268,20 @@ class SIS2SDS(CSVTransformer):
         sourceFile = 'teachers'
         
         # defjne subset of columns to be loaded
-        columns = ['School_id', 'Teacher_id', 'First_name',
-                   'Last_name', 'Teacher_email', 'Title']
+        columns = ['Teacher_id', 'School_id', 'Teacher_email',
+                   'Title', 'Last_name', 'First_name']
         
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
         
-        deriveUsername = lambda row: row.Teacher_email.strip()
-        self.addColumnExpr(dataframe, 2, 'Username', deriveUsername)
+        deriveUsername = lambda row: self.createTeacherEmailAddress(row)
+        self.addColumnExpr(dataframe, 3, 'Username', deriveUsername)
+
+        deriveEmail = lambda row: self.createTeacherEmailAddress(row)
+        self.addColumnExpr(dataframe, 2, 'Teacher_email_new', deriveEmail)
+        self.dropColumn(dataframe, 'Teacher_email')
+        self.changeColumnName(dataframe, 'Teacher_email_new', 'Teacher_email')
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
@@ -259,6 +300,9 @@ class SIS2SDS(CSVTransformer):
         # add missing column and set default value
         self.addColumn(dataframe, 2, 'School_number', 2132)
         
+        self.dropColumn(dataframe, 'Principal_email')
+        self.addColumn(dataframe, len(columns), 'Principal_email', 'principal@gssb.org')
+
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
         self.saveCSVFile(dataframe, target)
     
