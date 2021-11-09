@@ -7,6 +7,7 @@ import certifi
 import json
 # for pandas dataframes
 import pandas
+from typing import Dict
 
 import logging
 
@@ -25,21 +26,21 @@ class Extract:
         self.schoolId = schoolId
         self.token = token
 
-    def retrieve(self, query: str):
+        self.http = urllib3.PoolManager(
+            cert_reqs='CERT_REQUIRED',
+            ca_certs=certifi.where(),
+            headers={'Authorization': 'Bearer ' + self.token,
+                     'Content-type': 'application/json; charset=utf-8'})
+
+
+    def retrieve(self, query: str) -> Dict[str, str]:
         # handle certificate verification and SSL warnings
         # https://urllib3.readthedocs.io/en/latest/user-guide.html#ssl
-        http = urllib3.PoolManager(
-            cert_reqs='CERT_REQUIRED',
-            ca_certs=certifi.where())
 
         # get data from the API
         url = self.MAIN_URL + query
         print(url)
-        response = http.request(
-            'GET',
-            url,
-            headers={'Authorization': 'Bearer ' + self.token,
-                     'Content-type': 'application/json; charset=utf-8'})
+        response = self.http.request('GET', url)
         
         if response.status != 200:
             msg = 'Request ' + url + ' failed with code ' + str(response.status);
@@ -47,38 +48,30 @@ class Extract:
 
         return json.loads(response.data.decode('utf-8'))
 
-    def getFamilies(self):
+    def getFamilies(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Families')
-        return pandas.json_normalize(data)
+        return pandas.DataFrame.from_records(data, index="ID")
 
-    def getStudents(self):
-        # "ID": 987123456,
-        # "FamilyID": 123654,
-        # "Family2ID": 0,
-        # "UserID": 0,
-        # "StudentCode": "MUS1234-5",
-        # "FirstName": "Max",
-        # "LastName": "Mustermann",
-        # "Grade": -1,
-        # "GradYear": 0,
-        # "Graduated": 0,
-        # "ExternalID": "8765"
+    def getStudents(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Students')
-        return pandas.json_normalize(data)
+        return pandas.DataFrame.from_records(data, index="ID")
 
-    def getContacts(self):
+    def getContacts(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Contacts')
-        return pandas.json_normalize(data)
+        return pandas.DataFrame.from_records(data, index="ID")
 
-    def getClasses(self):
+    def getClasses(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Classes')
-        return pandas.json_normalize(data)
+        return pandas.DataFrame.from_records(data['Period'], index="ID")
 
-    def getEmployees(self):
+    def getEmployees(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Employees')
-        return pandas.json_normalize(data)
+        return pandas.DataFrame.from_records(data, index="ID")
 
-    def getStudent(self, studentId: int):
-        data = self.retrieve('/Student/' + str(studentId) + '')
-        return pandas.json_normalize(data)
+    def getStudent(self, studentId: int) -> pandas.DataFrame:
+        data = [self.retrieve('/Student/' + str(studentId) + '')]
+        return pandas.DataFrame.from_records(data, index="Code")
 
+    def getFamily(self, familyId: int) -> Dict[str, str]:
+        data = [self.retrieve('/Family/' + str(familyId) + '')]
+        return pandas.DataFrame.from_records(data, index="Code")

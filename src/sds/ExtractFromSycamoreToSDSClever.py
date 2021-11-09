@@ -6,6 +6,7 @@ import sys
   
 # append the path of the parent directory
 sys.path.append("..")
+sys.path.append(".")
 
 from lib import Generators
 from lib import SycamoreRest
@@ -15,12 +16,19 @@ class CleverCreator:
 
     def __init__(self, args):
         self.schoolId = args.schoolId
+        self.cacheDir = args.cacheDir
 
         rest = SycamoreRest.Extract(schoolId=self.schoolId, token=args.securityToken)
-        self.sycamore = SycamoreCache.Cache(rest)
+        self.sycamore = SycamoreCache.Cache(rest=rest)
+
 
     def generate(self):
-        print(self.generateStudents())
+        #print(self.generateStudents())
+        self.sycamore.saveToFiles(self.cacheDir)
+
+        self.sycamore2 = SycamoreCache.Cache(sourceDir=self.cacheDir)
+        self.sycamore2.compare(self.sycamore)
+
 
     def generateStudents(self):
         cleverStudents = pandas.DataFrame(columns=[
@@ -64,9 +72,11 @@ class CleverCreator:
 def parseArguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
     parser.add_argument('--school', dest='schoolId', action='store',
-                        type=int, required=True, help='Sycamore school ID.')
+                        type=int, required=True, help='Sycamore school ID')
     parser.add_argument('--token', dest='securityToken', action='store',
-                        required=True, help='Sycamore security token.')
+                        required=True, help='Sycamore security token')
+    parser.add_argument('--cache', dest='cacheDir', action='store',
+                        required=True, help='Cache directory')
     return parser.parse_args()
 
 if __name__ == "__main__" :
