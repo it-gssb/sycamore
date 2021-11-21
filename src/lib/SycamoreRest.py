@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # to handle  data retrieval
 import urllib3
 from urllib3 import request
@@ -7,7 +9,9 @@ import certifi
 import json
 # for pandas dataframes
 import pandas
+from lib import SycamoreEntity
 from typing import Dict
+
 
 import logging
 
@@ -22,8 +26,8 @@ class RestError(Exception):
 class Extract:
     MAIN_URL = 'https://app.sycamoreschool.com/api/v1'
 
-    def __init__(self, schoolId: int, token: str):
-        self.schoolId = schoolId
+    def __init__(self, school_id: int, token: str):
+        self.school_id = school_id
         self.token = token
 
         self.http = urllib3.PoolManager(
@@ -33,7 +37,7 @@ class Extract:
                      'Content-type': 'application/json; charset=utf-8'})
 
 
-    def retrieve(self, query: str) -> Dict[str, str]:
+    def _retrieve(self, query: str) -> Dict[str, str]:
         # handle certificate verification and SSL warnings
         # https://urllib3.readthedocs.io/en/latest/user-guide.html#ssl
 
@@ -48,38 +52,13 @@ class Extract:
 
         return json.loads(response.data.decode('utf-8'))
 
-    def getFamilies(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Families')
-        return pandas.DataFrame.from_records(data, index="ID")
-
-    def getFamily(self, familyId: int) -> Dict[str, str]:
-        data = [self.retrieve('/Family/' + str(familyId) + '')]
-        return pandas.DataFrame.from_records(data, index=[familyId])
-
-    def getStudents(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Students')
-        return pandas.DataFrame.from_records(data, index="ID")
-
-    def getStudent(self, studentId: int) -> pandas.DataFrame:
-        data = [self.retrieve('/Student/' + str(studentId) + '')]
-        return pandas.DataFrame.from_records(data, index=[studentId])
-
-    def getContacts(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Contacts')
-        return pandas.DataFrame.from_records(data, index="ID")
-
-    def getClasses(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Classes?quarter=0')
-        return pandas.DataFrame.from_records(data['Period'], index="ID")
-
-    def getEmployees(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Employees')
-        return pandas.DataFrame.from_records(data, index="ID")
-
-    def getYears(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Years')
-        return pandas.DataFrame.from_records(data, index="ID")
-
-    def getYear(self, yearId: int) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Years/' + str(yearId) + '')
-        return pandas.DataFrame.from_records(pandas.json_normalize(data), index=[yearId])
+    def get(self, entity: SycamoreEntity.Definition, entity_id: str = None) -> pandas.DataFrame:
+        print(entity)
+        data = self._retrieve(entity.url.format(school_id=self.school_id, entity_id=entity_id))
+        if entity.data_location is not None:
+            data = data[entity.data_location]
+        if entity.iterate_over is not None:
+            data = [data]
+        return pandas.DataFrame.from_records(
+            pandas.json_normalize(data),
+            index=entity.index_col if entity.index_col is not None else [entity_id])

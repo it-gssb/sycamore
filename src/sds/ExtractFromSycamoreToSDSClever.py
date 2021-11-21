@@ -17,31 +17,31 @@ from lib import SycamoreCache
 class CleverCreator:
 
     def __init__(self, args):
-        self.schoolId = args.schoolId
-        self.cacheDir = args.cacheDir
-        self.outputDir = args.outputDir
+        self.school_id = args.school_id
+        self.cache_dir = args.cache_dir
+        self.output_dir = args.output_dir
 
-        rest = SycamoreRest.Extract(schoolId=self.schoolId, token=args.securityToken)
-        if args.reloadData:
+        rest = SycamoreRest.Extract(school_id=self.school_id, token=args.security_token)
+        if args.reload_data:
             self.sycamore = SycamoreCache.Cache(rest=rest)
-            self.sycamore.saveToFiles(self.cacheDir)
+            self.sycamore.saveToFiles(self.cache_dir)
 
             # Check that saved data can be reloaded and compares clean
-            self.sycamore2 = SycamoreCache.Cache(sourceDir=self.cacheDir)
+            self.sycamore2 = SycamoreCache.Cache(sourceDir=self.cache_dir)
             self.sycamore2.compare(self.sycamore)
         else:
-            self.sycamore = SycamoreCache.Cache(sourceDir=self.cacheDir)
+            self.sycamore = SycamoreCache.Cache(sourceDir=self.cache_dir)
 
     def generate(self):
         students = self.generateStudents()
         students.sort_index(axis='index').to_csv(
-            os.path.join(self.outputDir, 'students.csv'),
+            os.path.join(self.output_dir, 'students.csv'),
             index=False,
             date_format='%m/%d/%Y')
 
         sections = self.generateSections()
         sections.sort_index(axis='index').to_csv(
-            os.path.join(self.outputDir, 'sections.csv'),
+            os.path.join(self.output_dir, 'sections.csv'),
             index=False,
             date_format='%m/%d/%Y')
 
@@ -49,7 +49,7 @@ class CleverCreator:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
     def generateStudents(self):
-        cleverStudents = pandas.DataFrame(columns=[
+        clever_students = pandas.DataFrame(columns=[
             'Student_id',
             'School_id',
             'Username',
@@ -64,12 +64,12 @@ class CleverCreator:
             'Status',
             ])
 
-        for index, _sycStudent in self.sycamore.getStudents().iterrows():
-            sycStudentDetails = self.sycamore.getStudent(index)
+        for index, _sycStudent in self.sycamore.get('students').iterrows():
+            sycStudentDetails = self.sycamore.get('student_details').loc(index)
 
             cleverStudent = {}
             cleverStudent['Student_id'] = index
-            cleverStudent['School_id'] = self.schoolId
+            cleverStudent['School_id'] = self.school_id
             cleverStudent['Username'] = Generators.createStudentEmailAddress(
                 sycStudentDetails['FirstName'], sycStudentDetails['LastName'])
             cleverStudent['Student_number'] = sycStudentDetails['ExtID']
@@ -85,12 +85,12 @@ class CleverCreator:
 
             cleverStudents = cleverStudents.append(pandas.Series(data=cleverStudent, name=index))
 
-        return cleverStudents
+        return clever_students
 
     def _getCurrentYear(self):
-        for index, year in self.sycamore.getYears().iterrows():
+        for index, year in self.sycamore.get('years').iterrows():
             if year['Current'] == '1':
-                return self.sycamore.getYear(index)
+                return self.sycamore.get('years_details').loc(index)
         return None
 
     def generateSections(self):
@@ -110,10 +110,10 @@ class CleverCreator:
             'Status',
             ])
 
-        for index, sycClass in self.sycamore.getClasses().iterrows():
+        for index, sycClass in self.sycamore.get('classes').iterrows():
             cleverSection = {}
             cleverSection['Section_id'] = index
-            cleverSection['School_id'] = self.schoolId
+            cleverSection['School_id'] = self.school_id
             cleverSection['Teacher_id'] = sycClass['PrimaryStaffID']
             cleverSection['Name'] = Generators.createSectionName(
                 sycClass['Name'], sycClass['Section'])
@@ -139,24 +139,24 @@ class CleverCreator:
 
         return cleverSections
 
-def parseArguments():
+def parse_arguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
-    parser.add_argument('--school', dest='schoolId', action='store',
+    parser.add_argument('--school', dest='school_id', action='store',
                         type=int, required=True, help='Sycamore school ID')
-    parser.add_argument('--token', dest='securityToken', action='store',
+    parser.add_argument('--token', dest='security_token', action='store',
                         required=True, help='Sycamore security token')
-    parser.add_argument('--cache', dest='cacheDir', action='store',
+    parser.add_argument('--cache', dest='cache_dir', action='store',
                         required=True, help='Cache directory')
-    parser.add_argument('--reload', dest='reloadData', action='store_true',
+    parser.add_argument('--reload', dest='reload_data', action='store_true',
                         help='Whether to reload data')
-    parser.add_argument('--out', dest='outputDir', action='store',
+    parser.add_argument('--out', dest='output_dir', action='store',
                         required=True, help='Output directory')
-    parser.set_defaults(reloadData=False)
+    parser.set_defaults(reload_data=False)
     return parser.parse_args()
 
 if __name__ == "__main__" :
     logging.basicConfig(level=logging.INFO)
-    args = parseArguments()
+    args = parse_arguments()
     creator = CleverCreator(args)
     creator.generate()
 

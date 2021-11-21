@@ -1,147 +1,73 @@
+from __future__ import annotations
+
 from lib import SycamoreRest
+from lib import SycamoreEntity
 import pandas
 import os
 
 ##           
 
+ENTITIES = [
+    SycamoreEntity.Definition(name='families', index_col='ID', url='/School/{school_id}/Families'),
+    SycamoreEntity.Definition(name='family_details', index_col=None, url='/Family/{entity_id}', iterate_over='families'),
+    SycamoreEntity.Definition(name='students', index_col='ID', url='/School/{school_id}/Students'),
+    SycamoreEntity.Definition(name='student_details', index_col=None, url='/Student/{entity_id}', iterate_over='students'),
+    SycamoreEntity.Definition(name='contacts', index_col='ID', url='/School/{school_id}/Contacts'),
+    SycamoreEntity.Definition(name='classes', index_col='ID', url='/School/{school_id}/Classes?quarter=0', data_location='Period'),
+    SycamoreEntity.Definition(name='employees', index_col='ID', url='/School/{school_id}/Employees'),
+    SycamoreEntity.Definition(name='years', index_col='ID', url='/School/{school_id}/Years'),
+    SycamoreEntity.Definition(name='years_details', index_col=None, url='/School/{school_id}/Years/{entity_id}', iterate_over='years'),
+]
+
+def _get_entity(entity_name: str):
+    for entity in ENTITIES:
+        if entity.name == entity_name:
+            return entity
+    raise InvalidEntity
+
+class InvalidEntity:
+    pass
+
 class Cache:
-    # Maximum number of families to load. Set to -1 for unbounded.
-    MAX_FAMILIES_COUNT = -1
-
-    # Maximum number of students to load. Set to -1 for unbounded.
-    MAX_STUDENTS_COUNT = -1
-
-    def __init__(self, rest: SycamoreRest.Extract = None, sourceDir: str = None):
+    def __init__(self, rest: SycamoreRest.Extract = None, source_dir: str = None):
         self.rest = rest
 
-        self.families = None
-        self.families_details = None
-        self.students = None
-        self.students_details = None
-        self.contacts = None
-        self.classes = None
-        self.employees = None
-        self.years = None
-        self.years_details = None
+        self.entities = {}
 
-        if sourceDir is not None:
-            self._loadFromFiles(sourceDir)
+        if source_dir is not None:
+            self._loadFromFiles(source_dir)
 
-    def _loadFromFiles(self, sourceDir: str):
-        self.families = pandas.read_pickle(os.path.join(sourceDir, 'families.pkl'))
-        self.families_details = pandas.read_pickle(os.path.join(sourceDir, 'families_details.pkl'))
-        self.students = pandas.read_pickle(os.path.join(sourceDir, 'students.pkl'))
-        self.students_details = pandas.read_pickle(os.path.join(sourceDir, 'students_details.pkl'))
-        self.contacts = pandas.read_pickle(os.path.join(sourceDir, 'contacts.pkl'))
-        self.classes = pandas.read_pickle(os.path.join(sourceDir, 'classes.pkl'))
-        self.employees = pandas.read_pickle(os.path.join(sourceDir, 'employees.pkl'))
-        self.years = pandas.read_pickle(os.path.join(sourceDir, 'years.pkl'))
-        self.years_details = pandas.read_pickle(os.path.join(sourceDir, 'years_details.pkl'))
+    def _loadFromFiles(self, source_dir: str):
+        for entity in ENTITIES:
+            self.entities[entity.name] = pandas.read_pickle(
+                os.path.join(source_dir, '{name}.pkl'.format(name=entity.name)))
 
-    def saveToFiles(self, targetDir: str):
-        self.getFamilies().to_pickle(os.path.join(targetDir, 'families.pkl'))
-        self._getFamiliesDetails().to_pickle(os.path.join(targetDir, 'families_details.pkl'))
-        self.getStudents().to_pickle(os.path.join(targetDir, 'students.pkl'))
-        self._getStudentsDetails().to_pickle(os.path.join(targetDir, 'students_details.pkl'))
-        self.getContacts().to_pickle(os.path.join(targetDir, 'contacts.pkl'))
-        self.getClasses().to_pickle(os.path.join(targetDir, 'classes.pkl'))
-        self.getEmployees().to_pickle(os.path.join(targetDir, 'employees.pkl'))
-        self.getYears().to_pickle(os.path.join(targetDir, 'years.pkl'))
-        self._getYearsDetails().to_pickle(os.path.join(targetDir, 'years_details.pkl'))
+    def loadAll(self):
+        for entity in ENTITIES:
+            _ = self.get(entity.name)
 
-    def compare(self, other):
-        print(self.getFamilies().equals(other.getFamilies()))
-        print(self.getFamilies().compare(other.getFamilies()))
-        print(self._getFamiliesDetails().equals(other._getFamiliesDetails()))
-        print(self._getFamiliesDetails().compare(other._getFamiliesDetails()))
-        print(self.getStudents().equals(other.getStudents()))
-        print(self.getStudents().compare(other.getStudents()))
-        print(self._getStudentsDetails().equals(other._getStudentsDetails()))
-        print(self._getStudentsDetails().compare(other._getStudentsDetails()))
-        print(self.getContacts().equals(other.getContacts()))
-        print(self.getContacts().compare(other.getContacts()))
-        print(self.getClasses().equals(other.getClasses()))
-        print(self.getClasses().compare(other.getClasses()))
-        print(self.getEmployees().equals(other.getEmployees()))
-        print(self.getEmployees().compare(other.getEmployees()))
-        print(self.getYears().equals(other.getYears()))
-        print(self.getYears().compare(other.getYears()))
-        print(self._getYearsDetails().equals(other._getYearsDetails()))
-        print(self._getYearsDetails().compare(other._getYearsDetails()))
+    def saveToFiles(self, target_dir: str):
+        for entity in ENTITIES:
+            if entity.name not in self.entities:
+                continue
+            self.entities[entity.name].to_pickle(
+                os.path.join(target_dir, '{name}.pkl'.format(name=entity.name)))
 
-    def getFamilies(self):
-        if self.families is None:
-            self.families = self.rest.getFamilies()
-        return self.families
+    def compare(self, other: 'Cache'):
+        for entity in ENTITIES:
+            print(self.get(entity.name).compare(other.get(entity.name)))
 
-    def _getFamiliesDetails(self):
-        if self.families_details is None:
-            families_details = []
-            count = 0
-            for familyId, family in self.getFamilies().iterrows():
-                count = count + 1
-                details = self.rest.getFamily(familyId)
-                families_details.append(details)
-                if (self.MAX_FAMILIES_COUNT >= 0 and 
-                    count > self.MAX_FAMILIES_COUNT): break
-            self.families_details = pandas.concat(families_details)
+    def get(self, entity_name: str):
+        entity = _get_entity(entity_name)
+        if entity.name not in self.entities:
+            if entity.iterate_over is None:
+                self.entities[entity.name] = self.rest.get(entity)
+            else:
+                all_data = []
+                for entity_id, _ in self.get(entity.iterate_over).iterrows():
+                    data = self.rest.get(entity, entity_id=entity_id)
+                    all_data.append(data)
 
-        return self.families_details
+                self.entities[entity.name] = pandas.concat(all_data)
 
-    def getFamily(self, familyId: int):
-        return self._getFamiliesDetails().loc[familyId]
-
-    def getStudents(self):
-        if self.students is None:
-            self.students = self.rest.getStudents()
-        return self.students
-
-    def _getStudentsDetails(self):
-        if self.students_details is None:
-            students_details = []
-            count = 0
-            for studentId, student in self.getStudents().iterrows():
-                count = count + 1
-                details = self.rest.getStudent(studentId)
-                students_details.append(details)
-                if (self.MAX_STUDENTS_COUNT >= 0 and
-                    count > self.MAX_STUDENTS_COUNT): break
-            self.students_details = pandas.concat(students_details)
-
-        return self.students_details
-
-    def getStudent(self, studentId: int):
-        return self._getStudentsDetails().loc[studentId]
-
-    def getContacts(self):
-        if self.contacts is None:
-            self.contacts = self.rest.getContacts()
-        return self.contacts
-
-    def getClasses(self):
-        if self.classes is None:
-            self.classes = self.rest.getClasses()
-        return self.classes
-
-    def getEmployees(self):
-        if self.employees is None:
-            self.employees = self.rest.getEmployees()
-        return self.employees
-
-    def getYears(self):
-        if self.years is None:
-            self.years = self.rest.getYears()
-        return self.years
-
-    def _getYearsDetails(self):
-        if self.years_details is None:
-            years_details = []
-            for yearId, year in self.getYears().iterrows():
-                details = self.rest.getYear(yearId)
-                years_details.append(details)
-            self.years_details = pandas.concat(years_details)
-
-        return self.years_details
-
-    def getYear(self, yearId: int):
-        return self._getYearsDetails().loc[yearId]
+        return self.entities[entity.name]
