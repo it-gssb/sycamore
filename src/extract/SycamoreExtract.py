@@ -301,7 +301,7 @@ def extractRecords(schoolId, token):
             try:
                 classDetailUrl = MAIN_URL + '/School/'+ str(schoolId) +'/Classes/' + str(aClassRecord["ID"]) 
                 classDetailDict = retrieve(classDetailUrl, token)
-                
+                classStudentsInfoDict = dict()
                 classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
                 classStudentsInfoDict = retrieve(classInfoUrl, token)
                 logging.info('Retrieved {0} student records in class {1}'
