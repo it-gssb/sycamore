@@ -52,9 +52,17 @@ class Extract:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Families')
         return pandas.DataFrame.from_records(data, index="ID")
 
+    def getFamily(self, familyId: int) -> Dict[str, str]:
+        data = [self.retrieve('/Family/' + str(familyId) + '')]
+        return pandas.DataFrame.from_records(data, index=[familyId])
+
     def getStudents(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Students')
         return pandas.DataFrame.from_records(data, index="ID")
+
+    def getStudent(self, studentId: int) -> pandas.DataFrame:
+        data = [self.retrieve('/Student/' + str(studentId) + '')]
+        return pandas.DataFrame.from_records(data, index=[studentId])
 
     def getContacts(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Contacts')
@@ -67,11 +75,3 @@ class Extract:
     def getEmployees(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Employees')
         return pandas.DataFrame.from_records(data, index="ID")
-
-    def getStudent(self, studentId: int) -> pandas.DataFrame:
-        data = [self.retrieve('/Student/' + str(studentId) + '')]
-        return pandas.DataFrame.from_records(data, index="Code")
-
-    def getFamily(self, familyId: int) -> Dict[str, str]:
-        data = [self.retrieve('/Family/' + str(familyId) + '')]
-        return pandas.DataFrame.from_records(data, index="Code")

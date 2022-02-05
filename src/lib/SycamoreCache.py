@@ -5,6 +5,12 @@ import os
 ##           
 
 class Cache:
+    # Maximum number of families to load. Set to -1 for unbounded.
+    MAX_FAMILIES_COUNT = -1
+
+    # Maximum number of students to load. Set to -1 for unbounded.
+    MAX_STUDENTS_COUNT = -1
+
     def __init__(self, rest: SycamoreRest.Extract = None, sourceDir: str = None):
         self.rest = rest
 
@@ -20,30 +26,37 @@ class Cache:
             self._loadFromFiles(sourceDir)
 
     def _loadFromFiles(self, sourceDir: str):
-        self.families = pandas.read_csv(os.path.join(sourceDir, 'families.csv'), index_col='ID')
-        self.families_details = pandas.read_csv(os.path.join(sourceDir, 'families_details.csv'), index_col='Code')
-        self.students = pandas.read_csv(os.path.join(sourceDir, 'students.csv'), index_col='ID')
-        self.students_details = pandas.read_csv(os.path.join(sourceDir, 'students_details.csv'), index_col='Code')
-        self.contacts = pandas.read_csv(os.path.join(sourceDir, 'contacts.csv'), index_col='ID')
-        self.classes = pandas.read_csv(os.path.join(sourceDir, 'classes.csv'), index_col='ID')
-        self.employees = pandas.read_csv(os.path.join(sourceDir, 'employees.csv'), index_col='ID')
+        self.families = pandas.read_pickle(os.path.join(sourceDir, 'families.pkl'))
+        self.families_details = pandas.read_pickle(os.path.join(sourceDir, 'families_details.pkl'))
+        self.students = pandas.read_pickle(os.path.join(sourceDir, 'students.pkl'))
+        self.students_details = pandas.read_pickle(os.path.join(sourceDir, 'students_details.pkl'))
+        self.contacts = pandas.read_pickle(os.path.join(sourceDir, 'contacts.pkl'))
+        self.classes = pandas.read_pickle(os.path.join(sourceDir, 'classes.pkl'))
+        self.employees = pandas.read_pickle(os.path.join(sourceDir, 'employees.pkl'))
 
     def saveToFiles(self, targetDir: str):
-        self.getFamilies().to_csv(os.path.join(targetDir, 'families.csv'))
-        self.getFamiliesDetails().to_csv(os.path.join(targetDir, 'families_details.csv'))
-        self.getStudents().to_csv(os.path.join(targetDir, 'students.csv'))
-        self.getStudentsDetails().to_csv(os.path.join(targetDir, 'students_details.csv'))
-        self.getContacts().to_csv(os.path.join(targetDir, 'contacts.csv'))
-        self.getClasses().to_csv(os.path.join(targetDir, 'classes.csv'))
-        self.getEmployees().to_csv(os.path.join(targetDir, 'employees.csv'))
+        self.getFamilies().to_pickle(os.path.join(targetDir, 'families.pkl'))
+        self._getFamiliesDetails().to_pickle(os.path.join(targetDir, 'families_details.pkl'))
+        self.getStudents().to_pickle(os.path.join(targetDir, 'students.pkl'))
+        self._getStudentsDetails().to_pickle(os.path.join(targetDir, 'students_details.pkl'))
+        self.getContacts().to_pickle(os.path.join(targetDir, 'contacts.pkl'))
+        self.getClasses().to_pickle(os.path.join(targetDir, 'classes.pkl'))
+        self.getEmployees().to_pickle(os.path.join(targetDir, 'employees.pkl'))
 
     def compare(self, other):
+        print(self.getFamilies().equals(other.getFamilies()))
         print(self.getFamilies().compare(other.getFamilies()))
-        print(self.getFamiliesDetails().compare(other.getFamiliesDetails()))
+        print(self._getFamiliesDetails().equals(other._getFamiliesDetails()))
+        print(self._getFamiliesDetails().compare(other._getFamiliesDetails()))
+        print(self.getStudents().equals(other.getStudents()))
         print(self.getStudents().compare(other.getStudents()))
-        print(self.getStudentsDetails().compare(other.getStudentsDetails()))
+        print(self._getStudentsDetails().equals(other._getStudentsDetails()))
+        print(self._getStudentsDetails().compare(other._getStudentsDetails()))
+        print(self.getContacts().equals(other.getContacts()))
         print(self.getContacts().compare(other.getContacts()))
+        print(self.getClasses().equals(other.getClasses()))
         print(self.getClasses().compare(other.getClasses()))
+        print(self.getEmployees().equals(other.getEmployees()))
         print(self.getEmployees().compare(other.getEmployees()))
 
     def getFamilies(self):
@@ -51,7 +64,7 @@ class Cache:
             self.families = self.rest.getFamilies()
         return self.families
 
-    def getFamiliesDetails(self):
+    def _getFamiliesDetails(self):
         if self.families_details is None:
             families_details = []
             count = 0
@@ -59,17 +72,21 @@ class Cache:
                 count = count + 1
                 details = self.rest.getFamily(familyId)
                 families_details.append(details)
-                if count > 5: break
+                if (self.MAX_FAMILIES_COUNT >= 0 and 
+                    count > self.MAX_FAMILIES_COUNT): break
             self.families_details = pandas.concat(families_details)
 
         return self.families_details
+
+    def getFamily(self, familyId: int):
+        return self._getFamiliesDetails().loc[familyId]
 
     def getStudents(self):
         if self.students is None:
             self.students = self.rest.getStudents()
         return self.students
 
-    def getStudentsDetails(self):
+    def _getStudentsDetails(self):
         if self.students_details is None:
             students_details = []
             count = 0
@@ -77,10 +94,14 @@ class Cache:
                 count = count + 1
                 details = self.rest.getStudent(studentId)
                 students_details.append(details)
-                if count > 5: break
+                if (self.MAX_STUDENTS_COUNT >= 0 and
+                    count > self.MAX_STUDENTS_COUNT): break
             self.students_details = pandas.concat(students_details)
 
         return self.students_details
+
+    def getStudent(self, studentId: int):
+        return self._getStudentsDetails().loc[studentId]
 
     def getContacts(self):
         if self.contacts is None:
