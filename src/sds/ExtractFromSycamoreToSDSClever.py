@@ -39,6 +39,12 @@ class CleverCreator:
             index=False,
             date_format='%m/%d/%Y')
 
+        sections = self.generateSections()
+        sections.sort_index(axis='index').to_csv(
+            os.path.join(self.outputDir, 'sections.csv'),
+            index=False,
+            date_format='%m/%d/%Y')
+
     def _strToDate(self, dateStr: str) -> datetime.date:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
@@ -81,6 +87,57 @@ class CleverCreator:
 
         return cleverStudents
 
+    def _getCurrentYear(self):
+        for index, year in self.sycamore.getYears().iterrows():
+            if year['Current'] == '1':
+                return self.sycamore.getYear(index)
+        return None
+
+    def generateSections(self):
+        currentYear = self._getCurrentYear()
+
+        cleverSections = pandas.DataFrame(columns=[
+            'Section_id',
+            'School_id',
+            'Teacher_id',
+            'Name',
+            'Term_name',
+            'Term_start',
+            'Term_end',
+            'Course_name',
+            'Subject',
+            'Period',
+            'Status',
+            ])
+
+        for index, sycClass in self.sycamore.getClasses().iterrows():
+            cleverSection = {}
+            cleverSection['Section_id'] = index
+            cleverSection['School_id'] = self.schoolId
+            cleverSection['Teacher_id'] = sycClass['PrimaryStaffID']
+            cleverSection['Name'] = Generators.createSectionName(
+                sycClass['Name'], sycClass['Section'])
+
+            cleverSection['Term_name'] = Generators.createTermName(sycClass['TermLength'])
+            cleverSection['Term_start'] = Generators.createTermStart(
+                sycClass['TermLength'],
+                self._strToDate(currentYear['Q1.StartDate']),
+                self._strToDate(currentYear['Q3.StartDate']),
+                self._strToDate(currentYear['EndDate']))
+            cleverSection['Term_end'] = Generators.createTermEnd(
+                sycClass['TermLength'],
+                self._strToDate(currentYear['Q1.StartDate']),
+                self._strToDate(currentYear['Q3.StartDate']),
+                self._strToDate(currentYear['EndDate']))
+
+            cleverSection['Course_name'] = sycClass['Name']
+            cleverSection['Subject'] = 'Language'
+            cleverSection['Period'] = 'GP' # Adlt, GP
+            cleverSection['Status'] = 'Active'
+
+            cleverSections = cleverSections.append(pandas.Series(data=cleverSection, name=index))
+
+        return cleverSections
 
 def parseArguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')

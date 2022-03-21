@@ -80,3 +80,39 @@ def createGrade(sycamore_grade: str) -> str:
 
     logging.warn("Could not translate grade '" + sycamore_grade + "'.")
     return sycamore_grade
+
+def createSectionName(sycamore_class_name: str, sycamore_section: str) -> str:
+    return str(sycamore_class_name) + '-' + str(sycamore_section)
+
+def createTermName(sycamore_term_name: str):
+    if sycamore_term_name == 'First':
+        return 'S1'
+    if sycamore_term_name == 'Second':
+        return 'S2'
+    if sycamore_term_name == 'Full Year':
+        return 'Year'
+
+    logging.warn("Could not translate term '" + sycamore_term_name + "'.")
+    return sycamore_term_name
+
+def createTermStart(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, _year_end: datetime.date):
+    if sycamore_term_name == 'First':
+        return s1_start
+    if sycamore_term_name == 'Second':
+        return s2_start
+    if sycamore_term_name == 'Full Year':
+        return s1_start
+
+    logging.warn("Could not translate term '" + sycamore_term_name + "'.")
+    return s1_start
+
+def createTermEnd(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, year_end: datetime.date):
+    if sycamore_term_name == 'First':
+        return s2_start - timedelta(days=7)
+    if sycamore_term_name == 'Second':
+        return year_end
+    if sycamore_term_name == 'Full Year':
+        return year_end
+
+    logging.warn("Could not translate term '" + sycamore_term_name + "'.")
+    return year_end
