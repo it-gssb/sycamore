@@ -52,3 +52,31 @@ def createTeacherEmailAddress(first_name: str, last_name: str, email: str) -> st
         return email.strip()
 
     return __createEmailAddress(first_name, last_name, TEACHER_DOMAIN)
+
+GRADE_MAP = {
+    'Preschool': 'Prekindergarten',
+    'Kindergarten': 'Kindergarten',
+    '1st': '1',
+    '2nd': '2',
+    '3rd': '3',
+    '4th': '4',
+    '5th': '5',
+    '6th': '6',
+    '7th': '7',
+    '8th': '8',
+    '9th - DSD 1': '9',
+    '10th - DSD 2 y1': '10',
+    '11th - DSD 2 y2': '11',
+}
+
+def createGrade(sycamore_grade: str) -> str:
+
+    if sycamore_grade is None:
+        logging.warn("Translating None grade to ''.")
+        return ''
+
+    if sycamore_grade in GRADE_MAP:
+        return GRADE_MAP[sycamore_grade]
+
+    logging.warn("Could not translate grade '" + sycamore_grade + "'.")
+    return sycamore_grade

@@ -37,7 +37,10 @@ class CleverCreator:
         students.sort_index(axis='index').to_csv(
             os.path.join(self.outputDir, 'students.csv'),
             index=False,
-            date_format='%m/%d/%Y')   
+            date_format='%m/%d/%Y')
+
+    def _strToDate(self, dateStr: str) -> datetime.date:
+        return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
     def generateStudents(self):
         cleverStudents = pandas.DataFrame(columns=[
@@ -65,8 +68,8 @@ class CleverCreator:
                 sycStudentDetails['FirstName'], sycStudentDetails['LastName'])
             cleverStudent['Student_number'] = sycStudentDetails['ExtID']
             print(sycStudentDetails['Code'], sycStudentDetails['DOB'])
-            cleverStudent['Dob'] = datetime.strptime(sycStudentDetails['DOB'], '%Y-%m-%d') if sycStudentDetails['DOB'] else None
-            cleverStudent['Grade'] = sycStudentDetails['Grade']
+            cleverStudent['Dob'] = self._strToDate(sycStudentDetails['DOB'])
+            cleverStudent['Grade'] = Generators.createGrade(sycStudentDetails['Grade'])
             cleverStudent['State_id'] = sycStudentDetails['StateID']
             cleverStudent['Secondary_email'] = sycStudentDetails['Email']
             cleverStudent['First_name'] = sycStudentDetails['FirstName']
