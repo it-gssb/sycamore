@@ -1,7 +1,11 @@
+from datetime import datetime
+from datetime import timedelta
+import logging
+
 STUDENT_DOMAIN = '@student.gssb.org'
 TEACHER_DOMAIN = '@gssb.org'
 
-def __formatFirstName(name):
+def __formatFirstName(name: str) -> str:
     return (
         name
             .strip()
@@ -9,7 +13,7 @@ def __formatFirstName(name):
             .replace('\'', '')
             )
 
-def __formatLastName(name):
+def __formatLastName(name: str) -> str:
     name = (
         name
             .strip()
@@ -35,15 +39,15 @@ def __formatLastName(name):
     else:
         return name.replace(' ', '-')
 
-def __createEmailAddress(first_name, last_name, domain):
+def __createEmailAddress(first_name: str, last_name: str, domain: str) -> str:
     return (__formatFirstName(first_name) + '.'
             + __formatLastName(last_name)
             + domain)
 
-def createStudentEmailAddress(first_name, last_name):
+def createStudentEmailAddress(first_name: str, last_name: str) -> str:
     return __createEmailAddress(first_name, last_name, STUDENT_DOMAIN)
 
-def createTeacherEmailAddress(first_name, last_name, email):
+def createTeacherEmailAddress(first_name: str, last_name: str, email: str) -> str:
     if email.strip().endswith('@gssb.org'):
         return email.strip()
 
