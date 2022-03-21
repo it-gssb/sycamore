@@ -69,9 +69,17 @@ class Extract:
         return pandas.DataFrame.from_records(data, index="ID")
 
     def getClasses(self) -> pandas.DataFrame:
-        data = self.retrieve('/School/' + str(self.schoolId) + '/Classes')
+        data = self.retrieve('/School/' + str(self.schoolId) + '/Classes?quarter=0')
         return pandas.DataFrame.from_records(data['Period'], index="ID")
 
     def getEmployees(self) -> pandas.DataFrame:
         data = self.retrieve('/School/' + str(self.schoolId) + '/Employees')
         return pandas.DataFrame.from_records(data, index="ID")
+
+    def getYears(self) -> pandas.DataFrame:
+        data = self.retrieve('/School/' + str(self.schoolId) + '/Years')
+        return pandas.DataFrame.from_records(data, index="ID")
+
+    def getYear(self, yearId: int) -> pandas.DataFrame:
+        data = self.retrieve('/School/' + str(self.schoolId) + '/Years/' + str(yearId) + '')
+        return pandas.DataFrame.from_records(pandas.json_normalize(data), index=[yearId])

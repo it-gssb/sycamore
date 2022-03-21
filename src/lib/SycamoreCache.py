@@ -21,6 +21,8 @@ class Cache:
         self.contacts = None
         self.classes = None
         self.employees = None
+        self.years = None
+        self.years_details = None
 
         if sourceDir is not None:
             self._loadFromFiles(sourceDir)
@@ -33,6 +35,8 @@ class Cache:
         self.contacts = pandas.read_pickle(os.path.join(sourceDir, 'contacts.pkl'))
         self.classes = pandas.read_pickle(os.path.join(sourceDir, 'classes.pkl'))
         self.employees = pandas.read_pickle(os.path.join(sourceDir, 'employees.pkl'))
+        self.years = pandas.read_pickle(os.path.join(sourceDir, 'years.pkl'))
+        self.years_details = pandas.read_pickle(os.path.join(sourceDir, 'years_details.pkl'))
 
     def saveToFiles(self, targetDir: str):
         self.getFamilies().to_pickle(os.path.join(targetDir, 'families.pkl'))
@@ -42,6 +46,8 @@ class Cache:
         self.getContacts().to_pickle(os.path.join(targetDir, 'contacts.pkl'))
         self.getClasses().to_pickle(os.path.join(targetDir, 'classes.pkl'))
         self.getEmployees().to_pickle(os.path.join(targetDir, 'employees.pkl'))
+        self.getYears().to_pickle(os.path.join(targetDir, 'years.pkl'))
+        self._getYearsDetails().to_pickle(os.path.join(targetDir, 'years_details.pkl'))
 
     def compare(self, other):
         print(self.getFamilies().equals(other.getFamilies()))
@@ -58,6 +64,10 @@ class Cache:
         print(self.getClasses().compare(other.getClasses()))
         print(self.getEmployees().equals(other.getEmployees()))
         print(self.getEmployees().compare(other.getEmployees()))
+        print(self.getYears().equals(other.getYears()))
+        print(self.getYears().compare(other.getYears()))
+        print(self._getYearsDetails().equals(other._getYearsDetails()))
+        print(self._getYearsDetails().compare(other._getYearsDetails()))
 
     def getFamilies(self):
         if self.families is None:
@@ -118,3 +128,20 @@ class Cache:
             self.employees = self.rest.getEmployees()
         return self.employees
 
+    def getYears(self):
+        if self.years is None:
+            self.years = self.rest.getYears()
+        return self.years
+
+    def _getYearsDetails(self):
+        if self.years_details is None:
+            years_details = []
+            for yearId, year in self.getYears().iterrows():
+                details = self.rest.getYear(yearId)
+                years_details.append(details)
+            self.years_details = pandas.concat(years_details)
+
+        return self.years_details
+
+    def getYear(self, yearId: int):
+        return self._getYearsDetails().loc[yearId]
