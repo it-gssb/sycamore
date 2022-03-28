@@ -82,6 +82,8 @@ def createGrade(sycamore_grade: str) -> str:
     return sycamore_grade
 
 def createSectionName(sycamore_class_name: str, sycamore_section: str) -> str:
+    if not sycamore_section:
+        return str(sycamore_class_name)
     return str(sycamore_class_name) + '-' + str(sycamore_section)
 
 def createTermName(sycamore_term_name: str):
@@ -95,7 +97,7 @@ def createTermName(sycamore_term_name: str):
     logging.warn("Could not translate term '" + sycamore_term_name + "'.")
     return sycamore_term_name
 
-def createTermStart(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, _year_end: datetime.date):
+def createTermStart(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, _year_end: datetime.date) -> datetime.date:
     if sycamore_term_name == 'First':
         return s1_start
     if sycamore_term_name == 'Second':
@@ -106,13 +108,28 @@ def createTermStart(sycamore_term_name: str, s1_start: datetime.date, s2_start: 
     logging.warn("Could not translate term '" + sycamore_term_name + "'.")
     return s1_start
 
-def createTermEnd(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, year_end: datetime.date):
+def createTermEnd(sycamore_term_name: str, s1_start: datetime.date, s2_start: datetime.date, year_end: datetime.date) -> datetime.date:
     if sycamore_term_name == 'First':
         return s2_start - timedelta(days=7)
     if sycamore_term_name == 'Second':
-        return year_end
+        return None
     if sycamore_term_name == 'Full Year':
-        return year_end
+        return None
 
     logging.warn("Could not translate term '" + sycamore_term_name + "'.")
-    return year_end
+    return None
+
+NAME_TO_PERIOD_MAP = {
+    'Beginner\'s Class': 'Adlt',
+    'Conversation Class German': 'Adlt',
+}
+
+def createPeriod(sycamore_class_name: str) -> str:
+    if sycamore_class_name in NAME_TO_PERIOD_MAP:
+        return NAME_TO_PERIOD_MAP[sycamore_class_name]
+    return 'GP'
+
+def createTeacherId(sycamore_primary_staff_id: str) -> str:
+    if not sycamore_primary_staff_id or sycamore_primary_staff_id == '0':
+        return ''
+    return sycamore_primary_staff_id

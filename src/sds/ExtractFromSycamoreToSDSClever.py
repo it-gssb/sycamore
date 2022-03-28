@@ -14,6 +14,8 @@ from lib import Generators
 from lib import SycamoreRest
 from lib import SycamoreCache
 
+DATE_FORMAT = '%m/%d/%Y'
+
 class CleverCreator:
 
     def __init__(self, args):
@@ -24,32 +26,33 @@ class CleverCreator:
         rest = SycamoreRest.Extract(school_id=self.school_id, token=args.security_token)
         if args.reload_data:
             self.sycamore = SycamoreCache.Cache(rest=rest)
+            self.sycamore.loadAll()
             self.sycamore.saveToFiles(self.cache_dir)
 
             # Check that saved data can be reloaded and compares clean
-            self.sycamore2 = SycamoreCache.Cache(sourceDir=self.cache_dir)
+            self.sycamore2 = SycamoreCache.Cache(source_dir=self.cache_dir)
             self.sycamore2.compare(self.sycamore)
         else:
-            self.sycamore = SycamoreCache.Cache(sourceDir=self.cache_dir)
+            self.sycamore = SycamoreCache.Cache(source_dir=self.cache_dir)
 
     def generate(self):
         students = self.generateStudents()
         students.sort_index(axis='index').to_csv(
             os.path.join(self.output_dir, 'students.csv'),
             index=False,
-            date_format='%m/%d/%Y')
+            date_format=DATE_FORMAT)
 
         sections = self.generateSections()
-        sections.sort_index(axis='index').to_csv(
+        sections.to_csv(
             os.path.join(self.output_dir, 'sections.csv'),
             index=False,
-            date_format='%m/%d/%Y')
+            date_format=DATE_FORMAT)
 
     def _strToDate(self, dateStr: str) -> datetime.date:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
     def generateStudents(self):
-        clever_students = pandas.DataFrame(columns=[
+        cleverStudents = pandas.DataFrame(columns=[
             'Student_id',
             'School_id',
             'Username',
@@ -65,7 +68,11 @@ class CleverCreator:
             ])
 
         for index, _sycStudent in self.sycamore.get('students').iterrows():
-            sycStudentDetails = self.sycamore.get('student_details').loc(index)
+            sycStudentDetails = self.sycamore.get('student_details').loc[index]
+
+            if sycStudentDetails['Grade'] is None:
+                print('Skipping student "{}" with empty grade'.format(index))
+                continue
 
             cleverStudent = {}
             cleverStudent['Student_id'] = index
@@ -73,7 +80,6 @@ class CleverCreator:
             cleverStudent['Username'] = Generators.createStudentEmailAddress(
                 sycStudentDetails['FirstName'], sycStudentDetails['LastName'])
             cleverStudent['Student_number'] = sycStudentDetails['ExtID']
-            print(sycStudentDetails['Code'], sycStudentDetails['DOB'])
             cleverStudent['Dob'] = self._strToDate(sycStudentDetails['DOB'])
             cleverStudent['Grade'] = Generators.createGrade(sycStudentDetails['Grade'])
             cleverStudent['State_id'] = sycStudentDetails['StateID']
@@ -85,12 +91,12 @@ class CleverCreator:
 
             cleverStudents = cleverStudents.append(pandas.Series(data=cleverStudent, name=index))
 
-        return clever_students
+        return cleverStudents
 
     def _getCurrentYear(self):
         for index, year in self.sycamore.get('years').iterrows():
             if year['Current'] == '1':
-                return self.sycamore.get('years_details').loc(index)
+                return self.sycamore.get('years_details').loc[index]
         return None
 
     def generateSections(self):
@@ -114,25 +120,27 @@ class CleverCreator:
             cleverSection = {}
             cleverSection['Section_id'] = index
             cleverSection['School_id'] = self.school_id
-            cleverSection['Teacher_id'] = sycClass['PrimaryStaffID']
+            cleverSection['Teacher_id'] = Generators.createTeacherId(sycClass['PrimaryStaffID'])
             cleverSection['Name'] = Generators.createSectionName(
                 sycClass['Name'], sycClass['Section'])
 
             cleverSection['Term_name'] = Generators.createTermName(sycClass['TermLength'])
-            cleverSection['Term_start'] = Generators.createTermStart(
+            term_start_date = Generators.createTermStart(
                 sycClass['TermLength'],
                 self._strToDate(currentYear['Q1.StartDate']),
                 self._strToDate(currentYear['Q3.StartDate']),
                 self._strToDate(currentYear['EndDate']))
-            cleverSection['Term_end'] = Generators.createTermEnd(
+            cleverSection['Term_start'] = term_start_date.strftime(DATE_FORMAT) if term_start_date else ''
+            term_start_end = Generators.createTermEnd(
                 sycClass['TermLength'],
                 self._strToDate(currentYear['Q1.StartDate']),
                 self._strToDate(currentYear['Q3.StartDate']),
                 self._strToDate(currentYear['EndDate']))
+            cleverSection['Term_end'] = term_start_end.strftime(DATE_FORMAT) if term_start_end else ''
 
             cleverSection['Course_name'] = sycClass['Name']
             cleverSection['Subject'] = 'Language'
-            cleverSection['Period'] = 'GP' # Adlt, GP
+            cleverSection['Period'] = Generators.createPeriod(sycClass['Name'])
             cleverSection['Status'] = 'Active'
 
             cleverSections = cleverSections.append(pandas.Series(data=cleverSection, name=index))
