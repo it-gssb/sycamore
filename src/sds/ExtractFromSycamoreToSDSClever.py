@@ -48,6 +48,12 @@ class CleverCreator:
             index=False,
             date_format=DATE_FORMAT)
 
+        teachers = self.generateTeachers()
+        teachers.sort_index(axis='index').to_csv(
+            os.path.join(self.output_dir, 'teachers.csv'),
+            index=False)
+
+
     def _strToDate(self, dateStr: str) -> datetime.date:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
@@ -146,6 +152,41 @@ class CleverCreator:
             cleverSections = cleverSections.append(pandas.Series(data=cleverSection, name=index))
 
         return cleverSections
+
+
+    def generateTeachers(self):
+        cleverTeachers = pandas.DataFrame(columns=[
+            'Teacher_id',
+            'School_id',
+            'Teacher_email',
+            'Username',
+            'Title',
+            'Last_name',
+            'First_name',
+            ])
+
+        for index, sycEmployee in self.sycamore.get('employees').iterrows():
+            if sycEmployee['Position'] != 'Teacher' and sycEmployee['Position'] != 'Substitute':
+                continue
+            if sycEmployee['Active'] != 1:
+                continue
+            if sycEmployee['Current'] != 1:
+                continue
+
+            cleverTeacher = {}
+            cleverTeacher['Teacher_id'] = index
+            cleverTeacher['School_id'] = self.school_id
+            emailAddress = Generators.createTeacherEmailAddress(
+                sycEmployee['FirstName'], sycEmployee['LastName'], sycEmployee['Email1'])
+            cleverTeacher['Teacher_email'] = emailAddress
+            cleverTeacher['Username'] = emailAddress
+            cleverTeacher['Title'] = sycEmployee['Position']
+            cleverTeacher['Last_name'] = sycEmployee['LastName']
+            cleverTeacher['First_name'] = sycEmployee['FirstName']
+
+            cleverTeachers = cleverTeachers.append(pandas.Series(data=cleverTeacher, name=index))
+
+        return cleverTeachers
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
