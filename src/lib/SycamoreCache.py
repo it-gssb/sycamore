@@ -11,6 +11,7 @@ ENTITIES = [
     SycamoreEntity.Definition(name='families', index_col='ID', url='/School/{school_id}/Families'),
     SycamoreEntity.Definition(name='family_details', index_col=None, url='/Family/{entity_id}', iterate_over='families'),
     SycamoreEntity.Definition(name='students', index_col='ID', url='/School/{school_id}/Students'),
+    SycamoreEntity.Definition(name='student_classes', index_col=None, url='/Student/{entity_id}/Classes?quarter=0&format=1', iterate_over='students'),
     SycamoreEntity.Definition(name='student_details', index_col=None, url='/Student/{entity_id}', iterate_over='students'),
     SycamoreEntity.Definition(name='contacts', index_col='ID', url='/School/{school_id}/Contacts'),
     SycamoreEntity.Definition(name='classes', index_col='ID', url='/School/{school_id}/Classes?quarter=0', data_location='Period'),
@@ -66,7 +67,8 @@ class Cache:
                 all_data = []
                 for entity_id, _ in self.get(entity.iterate_over).iterrows():
                     data = self.rest.get(entity, entity_id=entity_id)
-                    all_data.append(data)
+                    if data is not None:
+                        all_data.append(data)
 
                 self.entities[entity.name] = pandas.concat(all_data)
 

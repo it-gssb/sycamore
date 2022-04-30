@@ -46,6 +46,9 @@ class Extract:
         print(url)
         response = self.http.request('GET', url)
         
+        if response.status == 204:
+            return None
+
         if response.status != 200:
             msg = 'Request ' + url + ' failed with code ' + str(response.status);
             raise RestError(msg)
@@ -55,9 +58,11 @@ class Extract:
     def get(self, entity: SycamoreEntity.Definition, entity_id: str = None) -> pandas.DataFrame:
         print(entity)
         data = self._retrieve(entity.url.format(school_id=self.school_id, entity_id=entity_id))
+        if data is None:
+            return None
         if entity.data_location is not None:
             data = data[entity.data_location]
-        if entity.iterate_over is not None:
+        if entity.iterate_over is not None and type(data) is not list:
             data = [data]
         return pandas.DataFrame.from_records(
             pandas.json_normalize(data),

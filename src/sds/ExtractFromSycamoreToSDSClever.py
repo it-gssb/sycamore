@@ -53,6 +53,10 @@ class CleverCreator:
             os.path.join(self.output_dir, 'teachers.csv'),
             index=False)
 
+        enrollments = self.generateEnrollments()
+        enrollments.sort_values(by='Section_id').to_csv(
+            os.path.join(self.output_dir, 'enrollments.csv'),
+            index=False)
 
     def _strToDate(self, dateStr: str) -> datetime.date:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
@@ -187,6 +191,33 @@ class CleverCreator:
             cleverTeachers = cleverTeachers.append(pandas.Series(data=cleverTeacher, name=index))
 
         return cleverTeachers
+
+    def generateEnrollments(self):
+        cleverEnrollments = pandas.DataFrame(columns=[
+            'School_id',
+            'Section_id',
+            'Student_id',
+            ])
+
+        for index, _sycStudent in self.sycamore.get('students').iterrows():
+            try:
+                sycStudentClass = self.sycamore.get('student_classes').loc[index]
+            except KeyError:
+                print('Skipping student "{}" with no classes'.format(index))
+                continue
+
+            if sycStudentClass is None:
+                print('Skipping student "{}" with no classes'.format(index))
+                continue
+
+            cleverEnrollment = {}
+            cleverEnrollment['School_id'] = self.school_id
+            cleverEnrollment['Section_id'] = sycStudentClass['ID']
+            cleverEnrollment['Student_id'] = index
+
+            cleverEnrollments = cleverEnrollments.append(pandas.Series(data=cleverEnrollment, name=index))
+
+        return cleverEnrollments
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')
