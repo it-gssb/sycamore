@@ -9,7 +9,9 @@ import os
 
 ENTITIES = [
     SycamoreEntity.Definition(name='families', index_col='ID', url='/School/{school_id}/Families'),
+    SycamoreEntity.Definition(name='family_contacts', index_col='ID', url='/Family/{entity_id}/Contacts', iterate_over='families'),
     SycamoreEntity.Definition(name='family_details', index_col=None, url='/Family/{entity_id}', iterate_over='families'),
+    SycamoreEntity.Definition(name='family_students', index_col='ID', url='/Family/{entity_id}/Students', iterate_over='families'),
     SycamoreEntity.Definition(name='students', index_col='ID', url='/School/{school_id}/Students'),
     SycamoreEntity.Definition(name='student_classes', index_col=None, url='/Student/{entity_id}/Classes?quarter=0&format=1', iterate_over='students'),
     SycamoreEntity.Definition(name='student_details', index_col=None, url='/Student/{entity_id}', iterate_over='students'),
@@ -68,6 +70,8 @@ class Cache:
                 for entity_id, _ in self.get(entity.iterate_over).iterrows():
                     data = self.rest.get(entity, entity_id=entity_id)
                     if data is not None:
+                        # Add the "[iterate_over]" entity_id as additional column for lookups
+                        data.insert(loc=0, column=(entity.iterate_over + "_id"), value=entity_id)
                         all_data.append(data)
 
                 self.entities[entity.name] = pandas.concat(all_data)

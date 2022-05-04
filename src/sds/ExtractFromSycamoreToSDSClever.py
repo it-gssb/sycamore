@@ -58,6 +58,16 @@ class CleverCreator:
             os.path.join(self.output_dir, 'enrollments.csv'),
             index=False)
 
+        users = self.generateUsers()
+        users.sort_values(by=['SIS ID','Phone']).to_csv(
+            os.path.join(self.output_dir, 'users.csv'),
+            index=False)
+
+        guardianRelationships = self.generateGuardianRelationships()
+        guardianRelationships.sort_values(by='SIS ID').to_csv(
+            os.path.join(self.output_dir, 'guardianrelationship.csv'),
+            index=False)
+
     def _strToDate(self, dateStr: str) -> datetime.date:
         return datetime.strptime(dateStr, '%Y-%m-%d') if dateStr else None
 
@@ -218,6 +228,70 @@ class CleverCreator:
             cleverEnrollments = cleverEnrollments.append(pandas.Series(data=cleverEnrollment, name=index))
 
         return cleverEnrollments
+
+    def _appendUser(self, sdsUsers, contactId, sycFamilyContact, phoneField):
+        if sycFamilyContact[phoneField]:
+            sdsUser = {}
+            sdsUser['Email'] = sycFamilyContact['Email']
+            sdsUser['First Name'] = sycFamilyContact['FirstName'].strip()
+            sdsUser['Last Name'] = sycFamilyContact['LastName'].strip()
+            sdsUser['Phone'] = Generators.createPhoneNumber(sycFamilyContact[phoneField])
+            sdsUser['SIS ID'] = contactId
+
+            return sdsUsers.append(pandas.Series(data=sdsUser, name=(str(contactId)+"_"+phoneField)))
+        return sdsUsers
+
+
+    def generateUsers(self):
+        sdsUsers = pandas.DataFrame(columns=[
+            'Email',
+            'First Name',
+            'Last Name',
+            'Phone',
+            'SIS ID',
+            ])
+
+        for index, sycFamilyContact in self.sycamore.get('family_contacts').iterrows():
+            # Email, First Name and Last Name are required in SDS, so skip contacts without it
+            if (sycFamilyContact['PrimaryParent'] != 1
+                or not sycFamilyContact['Email']
+                or not sycFamilyContact['FirstName']
+                or not sycFamilyContact['LastName']):
+                continue
+
+            sdsUsers = self._appendUser(sdsUsers, index, sycFamilyContact, 'WorkPhone')
+            sdsUsers = self._appendUser(sdsUsers, index, sycFamilyContact, 'HomePhone')
+            sdsUsers = self._appendUser(sdsUsers, index, sycFamilyContact, 'CellPhone')
+
+        return sdsUsers
+
+    def generateGuardianRelationships(self):
+        sdsGuardianRelationships = pandas.DataFrame(columns=[
+            'SIS ID', # student ID
+            'Email', # contact e-mail
+            'Role', # contact role
+            ])
+
+        sycFamilyContacts = self.sycamore.get('family_contacts')
+        sycFamilyStudents = self.sycamore.get('family_students')
+
+        for familyIndex, sycFamily in self.sycamore.get('families').iterrows():
+            for contactIndex, sycFamilyContact in sycFamilyContacts.loc[sycFamilyContacts['families_id'] == familyIndex].iterrows():
+                # Email is the lookup key, so skip contacts without it
+                if not sycFamilyContact['Email'] or sycFamilyContact['PrimaryParent'] != 1:
+                    continue
+
+                for studentIndex in sycFamilyStudents.loc[sycFamilyStudents['families_id'] == familyIndex].index.values:
+                    sdsGuardianRelationship = {}
+                    sdsGuardianRelationship['Email'] = sycFamilyContact['Email']
+                    sdsGuardianRelationship['Role'] = Generators.createRole(sycFamilyContact['Relation'])
+                    sdsGuardianRelationship['SIS ID'] = studentIndex
+
+                    sdsGuardianRelationships = sdsGuardianRelationships.append(
+                        pandas.Series(data=sdsGuardianRelationship, name=(str(studentIndex)+"_"+str(contactIndex))))
+
+        return sdsGuardianRelationships
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Extract Family and School Data')

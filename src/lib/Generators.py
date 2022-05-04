@@ -174,3 +174,11 @@ def createRole(sycamore_relationship: str):
 
     print('Unknown relationship "%s"' % (sycamore_relationship))
     return 'Parent'
+
+def createPhoneNumber(phone: str) -> str:
+    return (
+        phone.replace("-", "")
+          .replace("(","")
+          .replace(")","")
+          .replace(" ","")
+          .strip())
