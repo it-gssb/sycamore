@@ -8,6 +8,7 @@ import os
 ##           
 
 ENTITIES = [
+    SycamoreEntity.Definition(name='school', index_col=None, url='/School/{school_id}'),
     SycamoreEntity.Definition(name='families', index_col='ID', url='/School/{school_id}/Families'),
     SycamoreEntity.Definition(name='family_contacts', index_col='ID', url='/Family/{entity_id}/Contacts', iterate_over='families'),
     SycamoreEntity.Definition(name='family_details', index_col=None, url='/Family/{entity_id}', iterate_over='families'),

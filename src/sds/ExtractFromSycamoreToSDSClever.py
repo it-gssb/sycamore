@@ -36,6 +36,11 @@ class CleverCreator:
             self.sycamore = SycamoreCache.Cache(source_dir=self.cache_dir)
 
     def generate(self):
+        schools = self.generateSchools()
+        schools.to_csv(
+            os.path.join(self.output_dir, 'schools.csv'),
+            index=False)
+
         students = self.generateStudents()
         students.sort_index(axis='index').to_csv(
             os.path.join(self.output_dir, 'students.csv'),
@@ -291,6 +296,48 @@ class CleverCreator:
                         pandas.Series(data=sdsGuardianRelationship, name=(str(studentIndex)+"_"+str(contactIndex))))
 
         return sdsGuardianRelationships
+
+    def _getSchool(self) -> pandas.core.series.Series:
+        sycSchools = self.sycamore.get('school')
+        if len(sycSchools.index) != 1:
+            raise KeyError('Should have 1 school, but found {}'.format(len(sycSchools.index)))
+        return sycSchools.iloc[0]
+
+    def _getPrincipal(self) -> pandas.core.series.Series:
+        # We expect there to only be ONE employee who has themselves as a manager, which is the principal
+        sycEmployees = self.sycamore.get('employees')
+
+        sycPrincipals = sycEmployees.loc[lambda emp: emp['ManagerID'] == emp.index]
+        if len(sycPrincipals.index) != 1:
+            raise KeyError('Should have 1 principal, but found {}'.format(len(sycPrincipals.index)))
+        return sycPrincipals.iloc[0]
+
+    def generateSchools(self):
+        sdsSchools = pandas.DataFrame(columns=[
+            'School_id',
+            'School_name',
+            'School_number',
+            'Low_grade',
+            'High_grade',
+            'Principal',
+            'Principal_email',
+            ])
+
+        sycSchool = self._getSchool()
+        sycEmployeePrincipal = self._getPrincipal()
+
+        sdsSchool = {}
+        sdsSchool['School_id'] = self.school_id
+        sdsSchool['School_name'] = sycSchool['Name']
+        sdsSchool['School_number'] = self.school_id
+        sdsSchool['Low_grade'] = 'Prekindergarten' # The API doesn't include this field
+        sdsSchool['High_grade'] = '12' # The API doesn't include this field
+        sdsSchool['Principal'] = '{} {}'.format(sycEmployeePrincipal['FirstName'], sycEmployeePrincipal['LastName'])
+        sdsSchool['Principal_email'] = sycEmployeePrincipal['Email1']
+
+        sdsSchools = sdsSchools.append(pandas.Series(data=sdsSchool, name=self.school_id))
+
+        return sdsSchools
 
 
 def parse_arguments():

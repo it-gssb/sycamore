@@ -64,6 +64,15 @@ class Extract:
             data = data[entity.data_location]
         if entity.iterate_over is not None and type(data) is not list:
             data = [data]
+
+        index_val = None
+        if entity.index_col is not None:
+            index_val = entity.index_col
+        elif entity_id is not None:
+            index_val = [entity_id]
+        else:
+            index_val = [self.school_id]
+
         return pandas.DataFrame.from_records(
             pandas.json_normalize(data),
-            index=entity.index_col if entity.index_col is not None else [entity_id])
+            index=index_val)
