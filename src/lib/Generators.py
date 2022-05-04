@@ -133,3 +133,44 @@ def createTeacherId(sycamore_primary_staff_id: str) -> str:
     if not sycamore_primary_staff_id or sycamore_primary_staff_id == '0':
         return ''
     return sycamore_primary_staff_id
+
+def createRole(sycamore_relationship: str):
+    if not isinstance(sycamore_relationship, str):
+        # Default value
+        return 'Parent'
+
+    sycamore_relationship = sycamore_relationship.strip()
+
+    if sycamore_relationship == 'Mother':
+        return 'Parent'
+    if sycamore_relationship == 'Father':
+        return 'Parent'
+    if sycamore_relationship == 'Parents':
+        return 'Parent'
+    if sycamore_relationship == 'Grandmother':
+        return 'Relative'
+    if sycamore_relationship == '':
+        return 'Other'
+    if sycamore_relationship == 'Aunt':
+        return 'Relative'
+    if sycamore_relationship == 'Close Friend':
+        return 'Other'
+    if sycamore_relationship == 'Colleague':
+        return 'Other'
+    if sycamore_relationship == 'Grandfather':
+        return 'Relative'
+    if sycamore_relationship == 'Grandparents':
+        return 'Relative'
+    if sycamore_relationship == 'Nanny':
+        return 'Aide'
+    if sycamore_relationship == 'Not Defined':
+        return 'Other'
+    if sycamore_relationship == 'Relative':
+        return 'Relative'
+    if sycamore_relationship == 'Sibling':
+        return 'Relative'
+    if sycamore_relationship == 'Uncle':
+        return 'Relative'
+
+    print('Unknown relationship "%s"' % (sycamore_relationship))
+    return 'Parent'

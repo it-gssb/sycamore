@@ -100,43 +100,25 @@ class SIS2SDS(CSVTransformer):
             return ''
         
         return name.split(' ', 1)[1].strip()
-    
+
     def getFirst(self, name : str):
         if name.strip() == '':
             return ''
-        
-        return name.split(' ', 1)[0].strip()
 
-    def getRole(self, relationship : str):
-        if not isinstance(relationship, str):
-            # Default value
-            return 'Parent'
+        a = name.split(' ')
+        return ' '.join(a[0:len(a)-1])
 
-        relationship = relationship.strip()
-
-        if relationship == 'Mother':
-            return 'Parent'
-        if relationship == 'Father':
-            return 'Parent'
-        if relationship == 'Parents':
-            return 'Parent'
-        if relationship == 'Grandmother':
-            return 'Relative'
-
-        print('Unknown relationship "%s"' % (relationship))
-        return 'Parent'
-    
     def transformParentGuardianRelation(self):
         sourceFile = 'students'
         targetFile = 'guardianrelationship'
-        
+
         # defjne subset of columns to be loaded
         columns = ['Student_id', 'Contact_email', 'Contact_relationship']
-        
+
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
-        
+
         # remove rows without email
         include = lambda df: pd.notna(df.Contact_email)
         dataframe = self.keepRows(dataframe, include)
@@ -146,7 +128,7 @@ class SIS2SDS(CSVTransformer):
         self.changeColumnName(dataframe, 'Contact_email', 'Email')
 
         # Create Role from Contact_relationship
-        deriveFirst = lambda row: self.getRole(row.Contact_relationship)
+        deriveFirst = lambda row: Generators.createRole(row.Contact_relationship)
         self.addColumnExpr(dataframe, len(columns), 'Role', deriveFirst)
 
         self.dropColumn(dataframe, 'Contact_relationship')
