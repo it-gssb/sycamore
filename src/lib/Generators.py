@@ -150,7 +150,7 @@ def createRole(sycamore_relationship: str):
     if sycamore_relationship == 'Grandmother':
         return 'Relative'
     if sycamore_relationship == '':
-        return 'Other'
+        return 'Parent'
     if sycamore_relationship == 'Aunt':
         return 'Relative'
     if sycamore_relationship == 'Close Friend':
