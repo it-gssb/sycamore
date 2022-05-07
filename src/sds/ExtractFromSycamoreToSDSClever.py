@@ -65,7 +65,7 @@ class CleverCreator:
 
         users = self.generateUsers()
         users.sort_values(by=['SIS ID','Phone']).to_csv(
-            os.path.join(self.output_dir, 'users.csv'),
+            os.path.join(self.output_dir, 'user.csv'),
             index=False)
 
         guardianRelationships = self.generateGuardianRelationships()
@@ -268,7 +268,7 @@ class CleverCreator:
             sdsUsers = self._appendUser(sdsUsers, index, sycFamilyContact, 'HomePhone')
             sdsUsers = self._appendUser(sdsUsers, index, sycFamilyContact, 'CellPhone')
 
-        return sdsUsers
+        return sdsUsers.drop_duplicates()
 
     def generateGuardianRelationships(self):
         sdsGuardianRelationships = pandas.DataFrame(columns=[
@@ -295,7 +295,7 @@ class CleverCreator:
                     sdsGuardianRelationships = sdsGuardianRelationships.append(
                         pandas.Series(data=sdsGuardianRelationship, name=(str(studentIndex)+"_"+str(contactIndex))))
 
-        return sdsGuardianRelationships
+        return sdsGuardianRelationships.drop_duplicates()
 
     def _getSchool(self) -> pandas.core.series.Series:
         sycSchools = self.sycamore.get('school')
