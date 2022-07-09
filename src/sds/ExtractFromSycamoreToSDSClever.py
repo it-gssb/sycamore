@@ -114,7 +114,7 @@ class CleverCreator:
             cleverStudent['Middle_name'] = ''  # TODO(osenft): Find data
             cleverStudent['Status'] = ''  # TODO(osenft): Find data
 
-            cleverStudents = cleverStudents.append(pandas.Series(data=cleverStudent, name=index))
+            cleverStudents.loc[index] = pandas.Series(data=cleverStudent)
 
         return cleverStudents
 
@@ -168,7 +168,7 @@ class CleverCreator:
             cleverSection['Period'] = Generators.createPeriod(sycClass['Name'])
             cleverSection['Status'] = 'Active'
 
-            cleverSections = cleverSections.append(pandas.Series(data=cleverSection, name=index))
+            cleverSections.loc[index] = pandas.Series(data=cleverSection)
 
         return cleverSections
 
@@ -203,7 +203,7 @@ class CleverCreator:
             cleverTeacher['Last_name'] = sycEmployee['LastName']
             cleverTeacher['First_name'] = sycEmployee['FirstName']
 
-            cleverTeachers = cleverTeachers.append(pandas.Series(data=cleverTeacher, name=index))
+            cleverTeachers.loc[index] = pandas.Series(data=cleverTeacher)
 
         return cleverTeachers
 
@@ -230,7 +230,7 @@ class CleverCreator:
             cleverEnrollment['Section_id'] = sycStudentClass['ID']
             cleverEnrollment['Student_id'] = index
 
-            cleverEnrollments = cleverEnrollments.append(pandas.Series(data=cleverEnrollment, name=index))
+            cleverEnrollments.loc[index] = pandas.Series(data=cleverEnrollment)
 
         return cleverEnrollments
 
@@ -243,7 +243,8 @@ class CleverCreator:
             sdsUser['Phone'] = Generators.createPhoneNumber(sycFamilyContact[phoneField])
             sdsUser['SIS ID'] = contactId
 
-            return sdsUsers.append(pandas.Series(data=sdsUser, name=(str(contactId)+"_"+phoneField)))
+            sdsUsers.loc[str(contactId)+"_"+phoneField] = pandas.Series(data=sdsUser)
+
         return sdsUsers
 
 
@@ -292,8 +293,8 @@ class CleverCreator:
                     sdsGuardianRelationship['Role'] = Generators.createRole(sycFamilyContact['Relation'])
                     sdsGuardianRelationship['SIS ID'] = studentIndex
 
-                    sdsGuardianRelationships = sdsGuardianRelationships.append(
-                        pandas.Series(data=sdsGuardianRelationship, name=(str(studentIndex)+"_"+str(contactIndex))))
+                    sdsGuardianRelationships.loc[str(studentIndex)+"_"+str(contactIndex)] = (
+                        pandas.Series(data=sdsGuardianRelationship))
 
         return sdsGuardianRelationships.drop_duplicates()
 
@@ -335,7 +336,7 @@ class CleverCreator:
         sdsSchool['Principal'] = '{} {}'.format(sycEmployeePrincipal['FirstName'], sycEmployeePrincipal['LastName'])
         sdsSchool['Principal_email'] = sycEmployeePrincipal['Email1']
 
-        sdsSchools = sdsSchools.append(pandas.Series(data=sdsSchool, name=self.school_id))
+        sdsSchools.loc[self.school_id] = pandas.Series(data=sdsSchool)
 
         return sdsSchools
 
