@@ -99,7 +99,8 @@ class SIS2SDS(CSVTransformer):
         if name.strip() == '':
             return ''
         
-        return name.split(' ', 1)[1].strip()
+        a = name.split(' ')
+        return a[len(a)-1]
 
     def getFirst(self, name : str):
         if name.strip() == '':
