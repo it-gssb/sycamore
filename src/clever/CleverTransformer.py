@@ -9,8 +9,14 @@ import argparse
 import logging
 import os
 import shutil
+import sys
 
 import pandas as pd
+
+# append the path of the parent directory
+sys.path.append(".")
+
+from lib import Generators
 
 
 logging.basicConfig(level=logging.WARN)
@@ -93,44 +99,27 @@ class SIS2SDS(CSVTransformer):
         if name.strip() == '':
             return ''
         
-        return name.split(' ', 1)[1].strip()
-    
+        a = name.split(' ')
+        return a[len(a)-1]
+
     def getFirst(self, name : str):
         if name.strip() == '':
             return ''
-        
-        return name.split(' ', 1)[0].strip()
 
-    def getRole(self, relationship : str):
-        if not isinstance(relationship, str):
-            # Default value
-            return 'Parent'
+        a = name.split(' ')
+        return ' '.join(a[0:len(a)-1])
 
-        relationship = relationship.strip()
-
-        if relationship == 'Mother':
-            return 'Parent'
-        if relationship == 'Father':
-            return 'Parent'
-        if relationship == 'Parents':
-            return 'Parent'
-        if relationship == 'Grandmother':
-            return 'Relative'
-
-        print('Unknown relationship "%s"' % (relationship))
-        return 'Parent'
-    
     def transformParentGuardianRelation(self):
         sourceFile = 'students'
         targetFile = 'guardianrelationship'
-        
+
         # defjne subset of columns to be loaded
         columns = ['Student_id', 'Contact_email', 'Contact_relationship']
-        
+
         fileName = self.findFile(self.sourceDir, sourceFile, '.csv')
         source = os.path.join(self.sourceDir, fileName)
         dataframe = self.loadCSVFileSubset(source, columns)
-        
+
         # remove rows without email
         include = lambda df: pd.notna(df.Contact_email)
         dataframe = self.keepRows(dataframe, include)
@@ -140,7 +129,7 @@ class SIS2SDS(CSVTransformer):
         self.changeColumnName(dataframe, 'Contact_email', 'Email')
 
         # Create Role from Contact_relationship
-        deriveFirst = lambda row: self.getRole(row.Contact_relationship)
+        deriveFirst = lambda row: Generators.createRole(row.Contact_relationship)
         self.addColumnExpr(dataframe, len(columns), 'Role', deriveFirst)
 
         self.dropColumn(dataframe, 'Contact_relationship')
@@ -188,30 +177,11 @@ class SIS2SDS(CSVTransformer):
         target = os.path.join(self.targetDir, f'{targetFile}.csv')
         self.saveCSVFile(dataframe, target)
         
-    def formatLastName(self, name):
-        name = name.replace('Freiin von ', 'Von')
-        name = name.replace(' Nguyen', 'Nguyen')
-        name = name.replace(' zu ', 'zu')
-        name = name.replace(' Zu ', 'Zu')
-        name = name.replace('de ', 'de')
-        name = name.replace('De ', 'De')
-        name = name.replace('van ', 'van')
-        name = name.replace('von ', 'von')
-        name = name.replace('Van ', 'Van')
-        name = name.replace('Von ', 'Von')
-
-        return name.replace(' ', '-')
-        
-    def createEmailAddress(self, row, domain):
-        return (row.First_name.strip().replace(" ", "") + '.'
-                + self.formatLastName(row.Last_name.strip()) 
-                + domain).replace("'", "")
+    def createStudentEmailAddress(self, row):
+        return Generators.createStudentEmailAddress(row.First_name, row.Last_name)
 
     def createTeacherEmailAddress(self, row):
-        if row.Teacher_email.strip().endswith('@gssb.org'):
-            return row.Teacher_email.strip()
-
-        return self.createEmailAddress(row, '@gssb.org')
+        return Generators.createTeacherEmailAddress(row.First_name, row.Last_name, row.Teacher_email)
         
     def transformStudents(self):
         sourceFile = 'students'
@@ -232,7 +202,7 @@ class SIS2SDS(CSVTransformer):
         self.removeDuplicates(dataframe)
         
         # add missing column and set default value
-        derive = lambda row: self.createEmailAddress(row, '@student.gssb.org')
+        derive = lambda row: self.createStudentEmailAddress(row)
         self.addColumnExpr(dataframe, 2, 'Username', derive)
         
         target = os.path.join(self.targetDir, f'{sourceFile}.csv')
