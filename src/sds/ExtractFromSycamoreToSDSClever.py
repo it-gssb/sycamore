@@ -90,6 +90,7 @@ class CleverCreator:
             'Last_name',
             'Middle_name',
             'Status',
+            'Password',
             ])
 
         for index, _sycStudent in self.sycamore.get('students').iterrows():
@@ -103,7 +104,8 @@ class CleverCreator:
             cleverStudent['Student_id'] = index
             cleverStudent['School_id'] = self.school_id
             cleverStudent['Username'] = Generators.createStudentEmailAddress(
-                sycStudentDetails['FirstName'], sycStudentDetails['LastName'])
+                sycStudentDetails['FirstName'], sycStudentDetails['LastName'],
+                include_domain=False)
             cleverStudent['Student_number'] = sycStudentDetails['ExtID']
             cleverStudent['Dob'] = self._strToDate(sycStudentDetails['DOB'])
             cleverStudent['Grade'] = Generators.createGrade(sycStudentDetails['Grade'])
@@ -113,6 +115,7 @@ class CleverCreator:
             cleverStudent['Last_name'] = sycStudentDetails['LastName']
             cleverStudent['Middle_name'] = ''  # TODO(osenft): Find data
             cleverStudent['Status'] = ''  # TODO(osenft): Find data
+            cleverStudent['Password'] = sycStudentDetails['Code']
 
             cleverStudents.loc[index] = pandas.Series(data=cleverStudent)
 
@@ -182,6 +185,7 @@ class CleverCreator:
             'Title',
             'Last_name',
             'First_name',
+            'Password',
             ])
 
         for index, sycEmployee in self.sycamore.get('employees').iterrows():
@@ -196,12 +200,14 @@ class CleverCreator:
             cleverTeacher['Teacher_id'] = index
             cleverTeacher['School_id'] = self.school_id
             emailAddress = Generators.createTeacherEmailAddress(
-                sycEmployee['FirstName'], sycEmployee['LastName'], sycEmployee['Email1'])
+                sycEmployee['FirstName'], sycEmployee['LastName'], sycEmployee['Email1'],
+                include_domain=False)
             cleverTeacher['Teacher_email'] = emailAddress
             cleverTeacher['Username'] = emailAddress
             cleverTeacher['Title'] = sycEmployee['Position']
             cleverTeacher['Last_name'] = sycEmployee['LastName']
             cleverTeacher['First_name'] = sycEmployee['FirstName']
+            cleverTeacher['Password'] = 'GS5Brul3s!'
 
             cleverTeachers.loc[index] = pandas.Series(data=cleverTeacher)
 
