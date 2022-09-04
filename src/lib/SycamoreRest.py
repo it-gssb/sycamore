@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # to handle  data retrieval
 import urllib3
-from urllib3 import request
+# from urllib3 import request
 # to handle certificate verification
 import certifi
 # to manage json data
@@ -43,7 +43,7 @@ class Extract:
 
         # get data from the API
         url = self.MAIN_URL + query
-        print(url)
+        logging.debug(url)
         response = self.http.request('GET', url)
         
         if response.status == 204:
@@ -56,7 +56,7 @@ class Extract:
         return json.loads(response.data.decode('utf-8'))
 
     def get(self, entity: SycamoreEntity.Definition, entity_id: str = None) -> pandas.DataFrame:
-        print(entity)
+        logging.debug(entity)
         data = self._retrieve(entity.url.format(school_id=self.school_id, entity_id=entity_id))
         if data is None:
             return None
