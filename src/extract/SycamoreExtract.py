@@ -13,6 +13,8 @@ RELATIONSHIPS = {'Parents' : 1, 'Mother' : 2, 'Father' : 3,
                  'Stepmother' : 6, 'Stepfather' : 7,
                  'Aunt' : 8, 'Uncle' : 9, 'Relative' : 10};
                  
+STUDENT_DOMAIN = '@student.gssb.org'
+                 
 ##           
 
 class RestError(Exception):
@@ -50,7 +52,7 @@ def retrieve(url, token):
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
                                           'Content-type': 'application/json; charset=utf-8'});
     if response.status_code == 204:
-        logging.warn("No content found for " + url)
+        logging.debug("No content found for " + url)
     elif not response.status_code == 200:
         msg = 'Request ' + url + ' failed with code ' + str(response.status_code);
         raise RestError(msg)
@@ -73,6 +75,48 @@ def getSortedContacts(familyId, token):
     familyContactsDict = sorted(familyContactsDict, 
                                 key=lambda family: sortCriteria(family));
     return familyContactsDict
+
+def __formatFirstName(name: str) -> str:
+    return (
+        name
+            .strip()
+            .replace(' ', '')
+            .replace('\'', '')
+            )
+
+def __formatLastName(name: str) -> str:
+    name = (
+        name
+            .strip()
+            .replace('\'', '')
+            )
+
+    if name[:4] in ('van ', 'Van ', 'von ', 'Von '):
+        return name.replace(' ', '')
+    elif name.startswith('Freiin von '):
+        return name.replace('Freiin von ', 'Von').replace(' ','-')
+    elif ' zu ' in name:
+        return name.replace(' ', '')
+    elif ' Zu ' in name:
+        return name.replace(' ', '')
+    elif name.startswith('de '):
+        return name.replace(' ', '')
+    elif name.startswith('De '):
+        return name.replace(' ', '')
+    elif ' Nguyen' in name:
+        return name.replace(' ', '')
+    elif ' nguyen' in name:
+        return name.replace(' ', '')
+    else:
+        return name.replace(' ', '-')
+
+def __createEmailAddress(first_name: str, last_name: str, domain: str) -> str:
+    return (__formatFirstName(first_name) + '.'
+            + __formatLastName(last_name)
+            + domain)
+
+def createStudentEmailAddress(first_name: str, last_name: str) -> str:
+    return __createEmailAddress(first_name, last_name, STUDENT_DOMAIN)
 
 def getFamilyEmails(familyContacts):
     # pick up to three first family contacts that define an email
@@ -173,7 +217,9 @@ def createRecordHeader() :
               "TeacherLastName",
               "TeacherFirstName",
               "TeacherName",
+              "StudentGSSBEmail,"
               "FamilyID",
+              "StudentCode",
               "Parent1LastName",
               "Parent1FirstName",
               "Parent2LastName",
@@ -203,7 +249,13 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
     try:
         # family code is 7 characters long
         familyCode = classStudent["Code"][:7]
+        studentCode = classStudent["Code"].strip()
         family = familyDict.get(familyCode);
+        if (not family):
+            logging.error("unable to include student with Code " + familyCode);
+            record = [];
+            return ""
+    
         family["State"] = formatStateName(family["State"]);
         
         teacherFullName = aClassRecord["PrimaryTeacher"]
@@ -243,7 +295,10 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
                   teacherFirstName.strip(),
                   ('"' + teacherLastName.strip() + ', ' +
                          teacherFirstName.strip() + '"'),
+                  createStudentEmailAddress(classStudent["FirstName"].strip(), 
+                                            classStudent["LastName"].strip()),
                   familyCode,
+                  studentCode,
                   family["parent1LastName"],
                   family["parent1FirstName"],
                   family["parent2LastName"],
