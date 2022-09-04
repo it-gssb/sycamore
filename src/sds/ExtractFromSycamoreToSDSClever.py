@@ -2,7 +2,7 @@ import argparse
 from datetime import datetime
 import os
 import pandas
-import re
+# import re
 import logging
 import sys
   
@@ -218,11 +218,11 @@ class CleverCreator:
             try:
                 sycStudentClass = self.sycamore.get('student_classes').loc[index]
             except KeyError:
-                print('Skipping student "{}" with no classes'.format(index))
+                print('Skipping student "{} {}" with no classes'.format(_sycStudent["FirstName"], _sycStudent["LastName"]))
                 continue
 
             if sycStudentClass is None:
-                print('Skipping student "{}" with no classes'.format(index))
+                print('Skipping student "{} {}" with no classes'.format(_sycStudent["FirstName"], _sycStudent["LastName"]))
                 continue
 
             cleverEnrollment = {}
