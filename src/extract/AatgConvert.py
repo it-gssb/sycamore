@@ -116,6 +116,11 @@ def loadRawHtml(html_file):
     addFilledColumn(df, PERCENTILE, 'na')
     addFilledColumn(df, AWARD, ' ')
     addFilledColumn(df, SCHOOL, 'German Saturday School Boston')
+    
+    # Remove rows with value 0 in the TOTAL column.
+    # It implies that the student did not participate in the test
+#    df2 = df[df[TOTAL].map(lambda val: val) != 0]
+#    return df2
 
     return df
 
