@@ -7,9 +7,19 @@ class FileFormat(enum.Enum):
     csv=1
     excel=2
 
-def merge(file1, file2, output, join, keys1, keys2, sortColumns, fileType):
+def merge(file1, file2, output, join, keys1, keys2, sortColumns, fileType, leftKeyDefaults, rightKeyDefaults):
     df1 = pandas.read_csv(file1)
     df2 = pandas.read_csv(file2)
+
+    if leftKeyDefaults:
+        df1 = df1.fillna(
+            dict(zip(keys1, leftKeyDefaults))
+        )
+
+    if rightKeyDefaults:
+        df2 = df2.fillna(
+            dict(zip(keys2, rightKeyDefaults))
+        )
      
     result = df1.merge(df2, left_on=keys1, right_on=keys2, how=join)
     
@@ -38,10 +48,19 @@ def parseArguments():
     parser.add_argument('-x', '--excel', dest='fileType', action='store_const',
                         const=FileFormat.excel, default=FileFormat.csv, 
                         help='file type: csv or excel')
+    parser.add_argument('-ld', '--leftKeyDefaults', dest='leftKeyDefaults', action='append',
+                        type=str, help='default values for missing left keys')
+    parser.add_argument('-rd', '--rightKeyDefaults', dest='rightKeyDefaults', action='append',
+                        type=str, help='default values for missing right keys')
     args = parser.parse_args()
 
     assert len(args.files) == 2, "mismatched number of files"
     assert len(args.leftKeys) == len(args.rightKeys), "mismatched number of keys"
+    if args.leftKeyDefaults:
+        assert len(args.leftKeyDefaults) <= len(args.leftKeys), "too many left key defaults"
+    if args.leftKeyDefaults:
+        assert len(args.rightKeyDefaults) <= len(args.rightKeys), "too many right key defaults"
+
     return args
 
 if __name__ == "__main__" :
@@ -50,4 +69,4 @@ if __name__ == "__main__" :
     joinType = 'inner' if args.joinType == 'inner' else 'left'
     merge(args.files[0], args.files[1], args.output, joinType,
           args.leftKeys, args.rightKeys, args.sortColumns,
-          args.fileType)
+          args.fileType, args.leftKeyDefaults, args.rightKeyDefaults)
