@@ -44,14 +44,17 @@ def __createEmailAddress(first_name: str, last_name: str, domain: str) -> str:
             + __formatLastName(last_name)
             + domain)
 
-def createStudentEmailAddress(first_name: str, last_name: str) -> str:
-    return __createEmailAddress(first_name, last_name, STUDENT_DOMAIN)
+def createStudentEmailAddress(first_name: str, last_name: str, include_domain: bool = True) -> str:
+    return __createEmailAddress(first_name, last_name, STUDENT_DOMAIN if include_domain else '')
 
-def createTeacherEmailAddress(first_name: str, last_name: str, email: str) -> str:
+def createTeacherEmailAddress(first_name: str, last_name: str, email: str, include_domain: bool = True) -> str:
     if email.strip().endswith('@gssb.org'):
-        return email.strip()
+        if include_domain:
+            return email.strip()
+        else:
+            return email.strip().replace('@gssb.org', '')
 
-    return __createEmailAddress(first_name, last_name, TEACHER_DOMAIN)
+    return __createEmailAddress(first_name, last_name, TEACHER_DOMAIN if include_domain else '')
 
 GRADE_MAP = {
     'Preschool': 'Prekindergarten',
