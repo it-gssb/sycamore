@@ -64,6 +64,25 @@ def retrieve(url, token):
         record = literal_eval(info)
     return record;
 
+def incrChar(char):
+    n = chr(ord(char) + 1)
+    
+    if (ord(char) == ord('z')):
+        n = ord('a')
+    elif (ord(char) == ord('Z')):
+        n = ord('A')
+    elif (ord(char) == ord('9')):
+        n = ord('0')
+    elif (ord(char) == ord('-')):
+        n = ord('~')
+    else:
+        n = ord(char) + 1
+        
+    return chr(n)
+
+def incrString(string):
+    return "".join(incrChar(a) for a in string)
+
 def camelCase(string):
     return " ".join(a.capitalize() for a in re.split(r"[^a-zA-Z0-9&#\.-]", string))
 
@@ -220,6 +239,7 @@ def createRecordHeader() :
               "StudentGSSBEmail,"
               "FamilyID",
               "StudentCode",
+              "LingcoPwd",
               "Parent1LastName",
               "Parent1FirstName",
               "Parent2LastName",
@@ -299,6 +319,7 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
                                             classStudent["LastName"].strip()),
                   familyCode,
                   studentCode,
+                  incrString(studentCode),
                   family["parent1LastName"],
                   family["parent1FirstName"],
                   family["parent2LastName"],
