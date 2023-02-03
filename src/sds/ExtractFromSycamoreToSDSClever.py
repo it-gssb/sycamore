@@ -222,21 +222,24 @@ class CleverCreator:
 
         for index, _sycStudent in self.sycamore.get('students').iterrows():
             try:
-                sycStudentClass = self.sycamore.get('student_classes').loc[index]
+                sycStudentClassesList = self.sycamore.get('student_classes')
+                sycStudentClasses = sycStudentClassesList.loc[sycStudentClassesList['students_id'] == index]
             except KeyError:
                 print('Skipping student "{} {}" with no classes'.format(_sycStudent["FirstName"], _sycStudent["LastName"]))
                 continue
 
-            if sycStudentClass is None:
-                print('Skipping student "{} {}" with no classes'.format(_sycStudent["FirstName"], _sycStudent["LastName"]))
+            if sycStudentClasses is None:
+                print('Skipping student "{} {}" with empty classes'.format(_sycStudent["FirstName"], _sycStudent["LastName"]))
                 continue
 
-            cleverEnrollment = {}
-            cleverEnrollment['School_id'] = self.school_id
-            cleverEnrollment['Section_id'] = sycStudentClass['ID']
-            cleverEnrollment['Student_id'] = index
+            for studentClassIndex, sycStudentClass in sycStudentClasses.iterrows():
+                studentStudentClassIndex = '{}_{}'.format(index, studentClassIndex)
+                cleverEnrollment = {}
+                cleverEnrollment['School_id'] = self.school_id
+                cleverEnrollment['Section_id'] = studentClassIndex
+                cleverEnrollment['Student_id'] = index
 
-            cleverEnrollments.loc[index] = pandas.Series(data=cleverEnrollment)
+                cleverEnrollments.loc[studentStudentClassIndex] = pandas.Series(data=cleverEnrollment)
 
         return cleverEnrollments
 

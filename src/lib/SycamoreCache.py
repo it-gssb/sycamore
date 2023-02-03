@@ -14,7 +14,7 @@ ENTITIES = [
     SycamoreEntity.Definition(name='family_details', index_col=None, url='/Family/{entity_id}', iterate_over='families'),
     SycamoreEntity.Definition(name='family_students', index_col='ID', url='/Family/{entity_id}/Students', iterate_over='families'),
     SycamoreEntity.Definition(name='students', index_col='ID', url='/School/{school_id}/Students'),
-    SycamoreEntity.Definition(name='student_classes', index_col=None, url='/Student/{entity_id}/Classes?quarter=0&format=1', iterate_over='students'),
+    SycamoreEntity.Definition(name='student_classes', index_col='ID', url='/Student/{entity_id}/Classes?quarter=0&format=1', iterate_over='students'),
     SycamoreEntity.Definition(name='student_details', index_col=None, url='/Student/{entity_id}', iterate_over='students'),
     SycamoreEntity.Definition(name='contacts', index_col='ID', url='/School/{school_id}/Contacts'),
     SycamoreEntity.Definition(name='classes', index_col='ID', url='/School/{school_id}/Classes?quarter=0', data_location='Period'),
@@ -29,7 +29,7 @@ def _get_entity(entity_name: str):
             return entity
     raise InvalidEntity
 
-class InvalidEntity:
+class InvalidEntity(Exception):
     pass
 
 class Cache:
@@ -48,6 +48,7 @@ class Cache:
 
     def loadAll(self):
         for entity in ENTITIES:
+            print('Loading {}'.format(entity))
             _ = self.get(entity.name)
 
     def saveToFiles(self, target_dir: str):
@@ -68,12 +69,23 @@ class Cache:
                 self.entities[entity.name] = self.rest.get(entity)
             else:
                 all_data = []
-                for entity_id, _ in self.get(entity.iterate_over).iterrows():
-                    data = self.rest.get(entity, entity_id=entity_id)
-                    if data is not None:
-                        # Add the "[iterate_over]" entity_id as additional column for lookups
-                        data.insert(loc=0, column=(entity.iterate_over + "_id"), value=entity_id)
-                        all_data.append(data)
+                entity_iterate_over = self.get(entity.iterate_over)
+                total = len(entity_iterate_over.index)
+                count = 0
+                for entity_id, _ in entity_iterate_over.iterrows():
+                    count = count + 1
+                    try:
+                        print('   entity={} percent={} entity_id={}'.format(entity.name, round(count * 100 / total), entity_id))
+                        data = self.rest.get(entity, entity_id=entity_id)
+                        if data is not None:
+                            # Add the "[iterate_over]" entity_id as additional column for lookups
+                            data.insert(loc=0, column=(entity.iterate_over + "_id"), value=entity_id)
+                            all_data.append(data)
+                    except KeyboardInterrupt:
+                        raise
+                    except:
+                        print('Failed to load entity.name={} entity_id={}'.format(entity.name, entity_id))
+                        raise
 
                 self.entities[entity.name] = pandas.concat(all_data)
 
