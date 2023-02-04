@@ -3,6 +3,10 @@ import re
 import logging
 import requests
 from ast import literal_eval
+import sys
+sys.path.append('../DataConsistencyChecker')
+#from DataConsistencyChecker.SycamoreRecordChecker import SycamoreRecordChecker
+import SycamoreRecordChecker
 
 ## CONSTANTS
 
@@ -310,6 +314,24 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
                   family["tertiaryEmail"].strip(),
                   getAddress(family), 
                   cityStateZip]
+                  
+        # array of dictionary records
+        record2 = {}
+        record2["LastName"] = classStudent["LastName"]
+        record2["FirstName"] = classStudent["FirstName"]
+        record2["parent1LastName"] = family["parent1LastName"]
+        record2["parent1FirstName"] = family["parent1FirstName"]
+        record2["parent2LastName"] = family["parent2LastName"]
+        record2["parent2FirstName"] = family["parent2FirstName"]
+        record2["primaryEmail"] = family["primaryEmail"]
+        record2["secondaryEmail"] = family["secondaryEmail"]
+        record2["tertiaryEmail"] = family["tertiaryEmail"]
+        record2["PrimaryTeacher"] = aClassRecord["PrimaryTeacher"]
+        record2["HomeroomTeacher"] = classStudent["HomeroomTeacher"]
+
+        
+        
+        
     except TypeError: 
         logging.exception("Incorrect family record for code {0} and student {1} {2}"
                            .format(familyCode, 
@@ -318,8 +340,8 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
         record = [];
     finally:
         if len(record) == 0:
-            return "";
-        return ",".join(record);
+            return ("", {});
+        return (",".join(record), record2)
 
 def validateClassDetails(classes):
     for aClassRecord in classes:
@@ -330,8 +352,15 @@ def validateClassDetails(classes):
                          .format(aClassRecord["Name"]))
             
 def saveRecords(allRecords):
-    for record in allRecords:
-        print (record);
+   print("hello")
+    #for record in allRecords:
+    #    print (record)
+        
+        
+def checkRecords(dictArrayRecords):
+    checker = SycamoreRecordChecker.SycamoreRecordChecker()
+    for record in dictArrayRecords: 
+        checker.checkNamingConvention(record)    
 
 # Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, 
 # FamilyId, ParentName, Primary Parent Name, VolunteerAssignment, Address, 
@@ -347,6 +376,7 @@ def extractRecords(schoolId, token):
         
         allRecords=[];
         allRecords.append(createRecordHeader())
+        dictRecordArray = []
         for aClassRecord in classesDict["Period"]:
             # clean name of record
             aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
@@ -363,21 +393,31 @@ def extractRecords(schoolId, token):
                              .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
                 logging.debug(classStudentsInfoDict)
                 
+                
+                
                 # create records for all students
+                detailedStudentInfoDict = []
                 for classStudent in classStudentsInfoDict:
-                    r = createRecord(aClassRecord, classDetailDict, classStudent, familyDict);
+                    studentInfoUrl = MAIN_URL + '/Student/' + str(classStudent["ID"])
+                    detailedStudentInfo = retrieve(studentInfoUrl, token)
+                    detailedStudentInfoDict.append(detailedStudentInfo)
+                    
+                for detailedStudentInfo in detailedStudentInfoDict:
+                    [r, dictRecord] = createRecord(aClassRecord, classDetailDict, detailedStudentInfo, familyDict);
                     if len(r)>0:
                         allRecords.append(r);
+                        dictRecordArray.append(dictRecord)
                     
             except RestError as e:
                 msg = "REST API error when retrieving {0} student records " + \
                       "in class {1} with message {2}" \
                       .format(str(len(classStudentsInfoDict)), aClassRecord["Name"],
-                              e.message);
+                              str(e));
                 logging.debug(msg);
                 logging.warning('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
-        saveRecords(allRecords);
+        checkRecords(dictRecordArray)
+        saveRecords(allRecords)
     except Exception as ex:
         msg = "Connection failed: {0}".format(ex);
         logging.exception(msg);
