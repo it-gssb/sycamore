@@ -50,9 +50,18 @@ class ConsistencyRules:
         tertiaryEmail = studentRecord["tertiaryEmail"]
         self.checkNoWhitespaceAtEndings(tertiaryEmail)
     
+    def _OnlyOneSpaceBetweenPartsOfName(self, name):
+        tokens = name.split(' ')
+        for atoken in tokens:
+            self.checkNoWhitespaceAtEndings(atoken)
+            
     def check_OnlyOneSpaceBetweenPartsOfName(self, studentRecord):
-    #Extract first name, middle name and last name from studentRecord
-        return True
+        #Extract first name, middle name and last name from studentRecord
+        self._OnlyOneSpaceBetweenPartsOfName(studentRecord["FirstName"])
+        self._OnlyOneSpaceBetweenPartsOfName(studentRecord["parent1FirstName"])
+        self._OnlyOneSpaceBetweenPartsOfName(studentRecord["parent2FirstName"])
+        
+        
     
     def check_HomeroomTeacherSameAsClassTeacher(self, studentRecord):
         #Extract homeRoomTeacher and classTeacher from studentRecord

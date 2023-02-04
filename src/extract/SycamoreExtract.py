@@ -352,7 +352,7 @@ def validateClassDetails(classes):
                          .format(aClassRecord["Name"]))
             
 def saveRecords(allRecords):
-   print("hello")
+   return True
     #for record in allRecords:
     #    print (record)
         
