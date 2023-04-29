@@ -3,6 +3,9 @@ import re
 import logging
 import requests
 from ast import literal_eval
+import sys
+sys.path.append('../DataConsistencyChecker')
+from DataConsistencyChecker.SycamoreRecordChecker import SycamoreRecordChecker
 
 ## CONSTANTS
 
@@ -63,7 +66,8 @@ def retrieve(url, token):
     try:
         if len(info) > 0:
             logging.debug(info)
-            record = literal_eval(info)
+            replacedNull = info.replace(':null', ':""')
+            record = literal_eval(replacedNull)
     except ValueError as e:
         print(info)
         msg = "Failed type conversion of result " + info + " Exception: " + e.message;
@@ -339,6 +343,24 @@ def createRecord(aClassRecord, classDetailDict, classStudent, nikolaus, familyDi
                   family["tertiaryEmail"].strip(),
                   getAddress(family), 
                   cityStateZip]
+                  
+        # array of dictionary records
+        record2 = {}
+        record2["LastName"] = classStudent["LastName"]
+        record2["FirstName"] = classStudent["FirstName"]
+        record2["parent1LastName"] = family["parent1LastName"]
+        record2["parent1FirstName"] = family["parent1FirstName"]
+        record2["parent2LastName"] = family["parent2LastName"]
+        record2["parent2FirstName"] = family["parent2FirstName"]
+        record2["primaryEmail"] = family["primaryEmail"]
+        record2["secondaryEmail"] = family["secondaryEmail"]
+        record2["tertiaryEmail"] = family["tertiaryEmail"]
+        record2["PrimaryTeacher"] = aClassRecord["PrimaryTeacher"]
+        record2["HomeroomTeacher"] = classStudent["HomeroomTeacher"]
+
+        
+        
+        
     except TypeError: 
         logging.exception("Incorrect family record for code {0} and student {1} {2}"
                            .format(familyCode, 
@@ -347,8 +369,8 @@ def createRecord(aClassRecord, classDetailDict, classStudent, nikolaus, familyDi
         record = [];
     finally:
         if len(record) == 0:
-            return "";
-        return ",".join(record);
+            return ("", {});
+        return (",".join(record), record2)
 
 def validateClassDetails(classes):
     for aClassRecord in classes:
@@ -360,7 +382,13 @@ def validateClassDetails(classes):
             
 def saveRecords(allRecords):
     for record in allRecords:
-        print (record);
+        print (record)
+        
+        
+def checkRecords(dictArrayRecords):
+    checker = SycamoreRecordChecker()
+    for record in dictArrayRecords: 
+        checker.checkNamingConvention(record)    
 
 # Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, 
 # FamilyId, ParentName, Primary Parent Name, VolunteerAssignment, Address, 
@@ -376,6 +404,7 @@ def extractRecords(schoolId, token):
         
         allRecords=[];
         allRecords.append(createRecordHeader())
+        dictRecordArray = []
         for aClassRecord in classesDict["Period"]:
             # clean name of record
             aClassRecord["Name"] = aClassRecord["Name"].replace("\\","")
@@ -392,26 +421,36 @@ def extractRecords(schoolId, token):
                              .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
                 logging.debug(classStudentsInfoDict)
                 
+                
+                
                 # create records for all students
+                detailedStudentInfoDict = []
                 for classStudent in classStudentsInfoDict:
                     studentID = classStudent["ID"].strip()
                     studentStatistcssUrl = MAIN_URL + '/Student/' + str(studentID) + '/Statistics/' + '9255'
                     stat = retrieve(studentStatistcssUrl, token)
-                    logging.info('Found {0} stat for student {1}.'.format(stat["Value"], classStudent["Code"]))
+                    logging.debug('Found {0} stat for student {1}.'.format(stat["Value"], classStudent["Code"]))
                     
-                    r = createRecord(aClassRecord, classDetailDict, classStudent, stat["Value"], familyDict);
+                    studentInfoUrl = MAIN_URL + '/Student/' + str(studentID)
+                    detailedStudentInfo = retrieve(studentInfoUrl, token)
+                    detailedStudentInfoDict.append(detailedStudentInfo)
+                    
+                for detailedStudentInfo in detailedStudentInfoDict:
+                    [r, dictRecord] = createRecord(aClassRecord, classDetailDict, detailedStudentInfo, stat["Value"], familyDict);
                     if len(r)>0:
                         allRecords.append(r);
+                        dictRecordArray.append(dictRecord)
                     
             except RestError as e:
                 msg = "REST API error when retrieving {0} student records " + \
                       "in class {1} with message {2}" \
                       .format(str(len(classStudentsInfoDict)), aClassRecord["Name"],
-                              e.message);
+                              str(e));
                 logging.debug(msg);
                 logging.warning('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
-        saveRecords(allRecords);
+        checkRecords(dictRecordArray)
+        saveRecords(allRecords)
     except Exception as ex:
         msg = "Connection failed: {0}".format(ex);
         logging.exception(msg);

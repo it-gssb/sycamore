@@ -1,3 +1,4 @@
+#type: ignore
 import enum
 import argparse
 import logging
@@ -7,7 +8,7 @@ class FileFormat(enum.Enum):
     csv=1
     excel=2
 
-def merge(file1, file2, output, join, keys1, keys2, sortColumns, fileType, leftKeyDefaults, rightKeyDefaults):
+def merge(file1, file2, output, join, keys1, keys2, sortColumns, fileType, leftKeyDefaults, rightKeyDefaults, generalDefault):
     df1 = pandas.read_csv(file1)
     df2 = pandas.read_csv(file2)
 
@@ -20,6 +21,10 @@ def merge(file1, file2, output, join, keys1, keys2, sortColumns, fileType, leftK
         df2 = df2.fillna(
             dict(zip(keys2, rightKeyDefaults))
         )
+
+    if generalDefault is not None:
+        df1 = df1.fillna(generalDefault)
+        df2 = df2.fillna(generalDefault)
      
     result = df1.merge(df2, left_on=keys1, right_on=keys2, how=join)
     
@@ -52,6 +57,8 @@ def parseArguments():
                         type=str, help='default values for missing left keys')
     parser.add_argument('-rd', '--rightKeyDefaults', dest='rightKeyDefaults', action='append',
                         type=str, help='default values for missing right keys')
+    parser.add_argument('-dv', '--defaultValue', dest='defaultValue', action='store',
+                        type=str, default=None, help='default value for any entries (applied after key defaults)')
     args = parser.parse_args()
 
     assert len(args.files) == 2, "mismatched number of files"
@@ -69,4 +76,4 @@ if __name__ == "__main__" :
     joinType = 'inner' if args.joinType == 'inner' else 'left'
     merge(args.files[0], args.files[1], args.output, joinType,
           args.leftKeys, args.rightKeys, args.sortColumns,
-          args.fileType, args.leftKeyDefaults, args.rightKeyDefaults)
+          args.fileType, args.leftKeyDefaults, args.rightKeyDefaults, args.defaultValue)
