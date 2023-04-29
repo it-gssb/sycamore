@@ -7,7 +7,7 @@ class Definition:
         self.data_location = data_location
 
     def __str__(self) -> str:
-        return 'name={name}, index_col={index_col}, url={url}, iterator_over={iterate_over}, data_location={data_location}'.format(
+        return 'name={name}, index_col={index_col}, url={url}, iterate_over={iterate_over}, data_location={data_location}'.format(
                 name=self.name,
                 index_col=self.index_col,
                 url=self.url,
