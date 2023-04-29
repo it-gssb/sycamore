@@ -49,6 +49,7 @@ def correctUnicodeEscape(text):
     return newText;
     
 def retrieve(url, token):
+
     response = requests.get(url, headers={'Authorization': 'Bearer ' + token,
                                           'Content-type': 'application/json; charset=utf-8'});
     if response.status_code == 204:
@@ -59,9 +60,14 @@ def retrieve(url, token):
     info = correctUnicodeEscape(response.text).replace('\\','')
     logging.debug((info))
     record = [];
-    if len(info) > 0:
-        logging.debug(info)
-        record = literal_eval(info)
+    try:
+        if len(info) > 0:
+            logging.debug(info)
+            record = literal_eval(info)
+    except ValueError as e:
+        print(info)
+        msg = "Failed type conversion of result " + info + " Exception: " + e.message;
+        logging.error(msg);
     return record;
 
 def incrChar(char):
@@ -240,6 +246,7 @@ def createRecordHeader() :
               "FamilyID",
               "StudentCode",
               "LingcoPwd",
+              "Nikolaus",
               "Parent1LastName",
               "Parent1FirstName",
               "Parent2LastName",
@@ -265,7 +272,7 @@ def getAddress(family):
         address = '"' + ', '.join(neAddresses) + '"'
     return address
    
-def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
+def createRecord(aClassRecord, classDetailDict, classStudent, nikolaus, familyDict):
     try:
         # family code is 7 characters long
         familyCode = classStudent["Code"][:7]
@@ -320,6 +327,7 @@ def createRecord(aClassRecord, classDetailDict, classStudent, familyDict):
                   familyCode,
                   studentCode,
                   incrString(studentCode),
+                  nikolaus,
                   family["parent1LastName"],
                   family["parent1FirstName"],
                   family["parent2LastName"],
@@ -378,7 +386,7 @@ def extractRecords(schoolId, token):
                 classDetailUrl = MAIN_URL + '/School/'+ str(schoolId) +'/Classes/' + str(aClassRecord["ID"]) 
                 classDetailDict = retrieve(classDetailUrl, token)
                 classStudentsInfoDict = dict()
-                classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'    
+                classInfoUrl = MAIN_URL + '/Class/' + str(aClassRecord["ID"]) + '/Directory'
                 classStudentsInfoDict = retrieve(classInfoUrl, token)
                 logging.info('Retrieved {0} student records in class {1}'
                              .format(str(len(classStudentsInfoDict)), aClassRecord["Name"]))
@@ -386,7 +394,12 @@ def extractRecords(schoolId, token):
                 
                 # create records for all students
                 for classStudent in classStudentsInfoDict:
-                    r = createRecord(aClassRecord, classDetailDict, classStudent, familyDict);
+                    studentID = classStudent["ID"].strip()
+                    studentStatistcssUrl = MAIN_URL + '/Student/' + str(studentID) + '/Statistics/' + '9255'
+                    stat = retrieve(studentStatistcssUrl, token)
+                    logging.info('Found {0} stat for student {1}.'.format(stat["Value"], classStudent["Code"]))
+                    
+                    r = createRecord(aClassRecord, classDetailDict, classStudent, stat["Value"], familyDict);
                     if len(r)>0:
                         allRecords.append(r);
                     
