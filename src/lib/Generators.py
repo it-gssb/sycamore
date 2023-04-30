@@ -91,6 +91,7 @@ GRADE_MAP = {
     '9th - DSD 1': '9',
     '10th - DSD 2 y1': '10',
     '11th - DSD 2 y2': '11',
+    '10th (no DSD 2)': '12',
 }
 
 def createGrade(sycamore_grade: str) -> str:
