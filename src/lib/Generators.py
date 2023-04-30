@@ -56,6 +56,27 @@ def createTeacherEmailAddress(first_name: str, last_name: str, email: str, inclu
 
     return __createEmailAddress(first_name, last_name, TEACHER_DOMAIN if include_domain else '')
 
+def createStudentName(first_name: str, last_name: str) -> str:
+    return last_name + ', ' + first_name
+
+def createTeacherName(first_name: str, last_name: str) -> str:
+    return last_name + ', ' + first_name
+
+def createCityStateZip(city: str, state: str, zip: str) -> str:
+    return city + ', ' + state + ' ' + zip
+
+def createClassName(class_name: str, teacher_first: str, teacher_last: str) -> str:
+    result = class_name
+    if ('DSD I/' in class_name):
+        components = class_name.split('/')
+        c = ''
+        if len(components)>1 and components[1].strip() == teacher_last:
+            c = teacher_first[0] + teacher_last[0]
+        result = 'DSD I/' + c
+    elif ("DSD II" in class_name):
+        result = class_name.replace(' Jahr', 'J')
+    return result
+
 GRADE_MAP = {
     'Preschool': 'Prekindergarten',
     'Kindergarten': 'Kindergarten',
