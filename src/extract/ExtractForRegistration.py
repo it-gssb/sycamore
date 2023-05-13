@@ -15,6 +15,11 @@ from lib import SycamoreCache
 
 DATE_FORMAT = '%m/%d/%Y'
 
+
+class InvalidOutputDir(Exception):
+    pass
+
+
 class RegistrationCreator:
 
     def __init__(self, args):
@@ -22,19 +27,17 @@ class RegistrationCreator:
         self.cache_dir = args.cache_dir
         self.output_dir = args.output_dir
 
-        rest = SycamoreRest.Extract(school_id=self.school_id, token=args.security_token)
-        if args.reload_data:
-            self.sycamore = SycamoreCache.Cache(rest=rest)
-            self.sycamore.loadAll()
-            self.sycamore.saveToFiles(self.cache_dir)
+        if not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
+        elif not os.path.isdir(self.output_dir):
+            raise InvalidOutputDir('output_dir="{}" is not a directory'.format(self.output_dir))
 
-            # Check that saved data can be reloaded and compares clean
-            self.sycamore2 = SycamoreCache.Cache(source_dir=self.cache_dir)
-            self.sycamore2.compare(self.sycamore)
-        else:
-            self.sycamore = SycamoreCache.Cache(source_dir=self.cache_dir)
+        print('Initializing cache')
+        rest = SycamoreRest.Extract(school_id=self.school_id, token=args.security_token)
+        self.sycamore = SycamoreCache.Cache(rest=rest, cache_dir=self.cache_dir, reload=args.reload_data)
 
     def generate(self):
+        print('Generating output')
         registrations = self.generateRegistrations()
         registrations.to_csv(
             os.path.join(self.output_dir, 'registrations.csv'),
@@ -158,4 +161,5 @@ if __name__ == '__main__' :
     args = parse_arguments()
     creator = RegistrationCreator(args)
     creator.generate()
+    print('Done')
 

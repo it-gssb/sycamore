@@ -21,19 +21,10 @@ class RegistrationCreator:
     def __init__(self, args):
         self.school_id = args.school_id
         self.cache_dir = args.cache_dir
-        self.output_dir = args.output_dir
 
+        print('Initializing cache')
         rest = SycamoreRest.Extract(school_id=self.school_id, token=args.security_token)
-        if args.reload_data:
-            self.sycamore = SycamoreCache.Cache(rest=rest)
-            self.sycamore.loadAll()
-            self.sycamore.saveToFiles(self.cache_dir)
-
-            # Check that saved data can be reloaded and compares clean
-            self.sycamore2 = SycamoreCache.Cache(source_dir=self.cache_dir)
-            self.sycamore2.compare(self.sycamore)
-        else:
-            self.sycamore = SycamoreCache.Cache(source_dir=self.cache_dir)
+        self.sycamore = SycamoreCache.Cache(rest=rest, cache_dir=self.cache_dir, reload=args.reload_data)
 
     # 
     # Basic Validation Logic
@@ -142,7 +133,7 @@ class RegistrationCreator:
     #
 
     def validate(self):
-
+        print('Validating data')
         studentFamilies = set()
         classesWithStudents = set()
         studentClassesList = self.sycamore.get('student_classes')
@@ -202,8 +193,6 @@ def parse_arguments():
                         required=True, help='Cache directory')
     parser.add_argument('--reload', dest='reload_data', action='store_true',
                         help='Whether to reload data')
-    parser.add_argument('--out', dest='output_dir', action='store',
-                        required=True, help='Output directory')
     parser.set_defaults(reload_data=False)
     return parser.parse_args()
 
@@ -212,3 +201,5 @@ if __name__ == '__main__' :
     args = parse_arguments()
     creator = RegistrationCreator(args)
     creator.validate()
+    print('Done')
+
