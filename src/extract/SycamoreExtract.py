@@ -4,8 +4,6 @@ import logging
 import requests
 from ast import literal_eval
 import sys
-sys.path.append('../DataConsistencyChecker')
-from DataConsistencyChecker.SycamoreRecordChecker import SycamoreRecordChecker
 
 ## CONSTANTS
 
@@ -256,7 +254,8 @@ def createRecordHeader() :
               "Parent2LastName",
               "Parent2FirstName",
               "ParentNames",
-              "StudentLastNameIfDifferent",
+              "StudentLastNameIfDifferent1",
+              "StudentLastNameIfDifferent2",
               "PrimaryParentEmail",
               "SecondaryParentEmail",
               "TertiaryParentEmail",
@@ -297,10 +296,17 @@ def createRecord(aClassRecord, classDetailDict, classStudent, nikolaus, familyDi
             teacherFirstName = teacherNameTokens[0]
             teacherLastName = " ".join(teacherNameTokens[1:])
         
-        studentLastNameIfDifferent = ''
+        studentLastNameIfDifferent1 = ''
         if (classStudent["LastName"].strip().lower() !=
                   family["parent1LastName"].strip().lower()):
-            studentLastNameIfDifferent = classStudent["LastName"].strip()
+            studentLastNameIfDifferent1 = classStudent["LastName"].strip()
+            
+        studentLastNameIfDifferent2 = ''
+        if (family["parent2LastName"] and
+            family["parent2LastName"].strip() != '' and
+            classStudent["LastName"].strip().lower() !=
+                  family["parent2LastName"].strip().lower()):
+            studentLastNameIfDifferent2 = classStudent["LastName"].strip()
         
         cityStateZip = '"' + \
                        camelCase(family["City"].strip()) + ", " + \
@@ -337,7 +343,8 @@ def createRecord(aClassRecord, classDetailDict, classStudent, nikolaus, familyDi
                   family["parent2LastName"],
                   family["parent2FirstName"],
                   '"' + family["Name"].strip() + '"',
-                  studentLastNameIfDifferent,
+                  studentLastNameIfDifferent1,
+                  studentLastNameIfDifferent2,
                   family["primaryEmail"].strip(),
                   family["secondaryEmail"].strip(),
                   family["tertiaryEmail"].strip(),
@@ -383,12 +390,7 @@ def validateClassDetails(classes):
 def saveRecords(allRecords):
     for record in allRecords:
         print (record)
-        
-        
-def checkRecords(dictArrayRecords):
-    checker = SycamoreRecordChecker()
-    for record in dictArrayRecords: 
-        checker.checkNamingConvention(record)    
+
 
 # Want LastName, FirstName, Class, Room, Teacher LastName, Teacher FirstName, 
 # FamilyId, ParentName, Primary Parent Name, VolunteerAssignment, Address, 
@@ -449,7 +451,6 @@ def extractRecords(schoolId, token):
                 logging.debug(msg);
                 logging.warning('No student records available for class {0}'.format(aClassRecord["Name"]));
                 
-        checkRecords(dictRecordArray)
         saveRecords(allRecords)
     except Exception as ex:
         msg = "Connection failed: {0}".format(ex);
