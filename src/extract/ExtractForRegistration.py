@@ -77,11 +77,11 @@ class RegistrationCreator:
                 sycStudentClassesList = self.sycamore.get('student_classes')
                 sycStudentClasses = sycStudentClassesList.loc[sycStudentClassesList['students_id'] == studentIndex]
             except KeyError:
-                print('Skipping student "{} {}" with no classes'.format(_sycStudent['FirstName'], _sycStudent['LastName']))
+                print('Skipping student "{} {}" with no classes'.format(sycStudent['FirstName'], sycStudent['LastName']))
                 continue
 
             if sycStudentClasses is None:
-                print('Skipping student "{} {}" with empty classes'.format(_sycStudent['FirstName'], _sycStudent['LastName']))
+                print('Skipping student "{} {}" with empty classes'.format(sycStudent['FirstName'], sycStudent['LastName']))
                 continue
 
             for studentClassIndex, sycStudentClass in sycStudentClasses.iterrows():
