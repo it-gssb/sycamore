@@ -18,6 +18,10 @@ def __formatLastName(name: str) -> str:
         name
             .strip()
             .replace('\'', '')
+            .replace('ä', 'ae')
+            .replace('ö', 'oe')
+            .replace('ü', 'ue')
+            .replace('ß', 'ss')
             )
 
     if name[:4] in ('van ', 'Van ', 'von ', 'Von '):
