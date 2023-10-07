@@ -34,31 +34,79 @@ def _get_entity(entity_name: str):
 class InvalidEntity(Exception):
     pass
 
+class InvalidCacheDir(Exception):
+    pass
+
+class InvalidRestInterface(Exception):
+    pass
+
 class Cache:
-    def __init__(self, rest: SycamoreRest.Extract = None, source_dir: str = None):
+    def __init__(self, rest: SycamoreRest.Extract = None, cache_dir: str = None, reload: bool = False):
         self.rest = rest
 
         self.entities = {}
+        self.cache_dir = cache_dir
 
-        if source_dir is not None:
-            self._loadFromFiles(source_dir)
+        if self.cache_dir is not None:
+            # If the cache_dir is set, but it's pointing to something that's not
+            # a directory, we want to fail early.
+            if os.path.exists(self.cache_dir) and not os.path.isdir(self.cache_dir):
+                raise InvalidCacheDir('cache_dir "{}" is not a directory'.format(self.cache_dir))
 
-    def _loadFromFiles(self, source_dir: str):
-        for entity in ENTITIES:
-            self.entities[entity.name] = pandas.read_pickle(
-                os.path.join(source_dir, '{name}.pkl'.format(name=entity.name)))
+            if not reload:
+                try:
+                    self._loadFromFiles()
+                    # No need to contine, we're done initializing.
+                    return
+                except Exception as ex:
+                    print('Could not load from files ({}), loading from remote."'.format(ex))
+                    # Fall through to loading from remote.
 
-    def loadAll(self):
+        self._loadFromRemote()
+
+        if self.cache_dir is not None:
+            self._saveToFiles()
+
+
+    def _loadFromFiles(self):
+        if self.cache_dir is None:
+            raise InvalidCacheDir('cache_dir not set')
+
+        if not os.path.exists(self.cache_dir):
+            raise InvalidCacheDir('cache_dir "{}" does not exist'.format(self.cache_dir))
+
+        if not os.path.isdir(self.cache_dir):
+            raise InvalidCacheDir('cache_dir "{}" is not a directory'.format(self.cache_dir))
+
+        try:
+            for entity in ENTITIES:
+                self.entities[entity.name] = pandas.read_pickle(
+                    os.path.join(self.cache_dir, '{name}.pkl'.format(name=entity.name)))
+        except:
+            # If anything goes wrong, clear the cache
+            self.entities = {}
+            raise
+
+    def _loadFromRemote(self):
+        if not self.rest:
+            raise InvalidRestInterface('REST interface not set')
+
         for entity in ENTITIES:
             print('Loading {}'.format(entity))
             _ = self.get(entity.name)
 
-    def saveToFiles(self, target_dir: str):
+    def _saveToFiles(self):
+        # If target directory doesn't exist, create it.
+        if not os.path.exists(self.cache_dir):
+            os.mkdir(self.cache_dir)
+        elif not os.path.isdir(self.cache_dir):
+            raise InvalidCacheDir('cache_dir "{}" is not a directory'.format(self.cache_dir))
+
         for entity in ENTITIES:
             if entity.name not in self.entities:
                 continue
             self.entities[entity.name].to_pickle(
-                os.path.join(target_dir, '{name}.pkl'.format(name=entity.name)))
+                os.path.join(self.cache_dir, '{name}.pkl'.format(name=entity.name)))
 
     def compare(self, other: 'Cache'):
         for entity in ENTITIES:
