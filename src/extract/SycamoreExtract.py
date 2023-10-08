@@ -210,16 +210,7 @@ def formatStateName(state):
     return newState.upper();
 
 def formatClassName(className, teacherLast, teacherFirst):
-    result = className
-    if ('DSD I/' in className):
-        components = className.split('/')
-        c = ''
-        if len(components)>1 and components[1].strip() == teacherLast:
-            c = teacherFirst[0] + teacherLast[0]
-        result = 'DSD I/' + c
-    elif ("DSD II" in className):
-        result = className.replace(' Jahr', 'J')
-    return result;
+    return className;
 
 def sortCriteria(familyMemberRecord):
     code = RELATIONSHIPS.get(familyMemberRecord["Relation"], 100);

@@ -1,5 +1,4 @@
 import argparse
-from datetime import datetime
 import os
 import pandas
 import logging
@@ -15,6 +14,11 @@ from lib import SycamoreCache
 
 DATE_FORMAT = '%m/%d/%Y'
 
+SCOPE_GENERAL    = 'Local.General'
+CUSTOM_PHOTO     = 'PhotoRelease'
+CUSTOM_NIKOLAUS  = 'Permission for Nikolaus'
+CUSTOM_ALLERGIES = 'Allergies'
+CUSTOM_IEP       = 'IEP or 504 in regular school'
 
 class InvalidOutputDir(Exception):
     pass
@@ -26,6 +30,7 @@ class RegistrationCreator:
         self.school_id = args.school_id
         self.cache_dir = args.cache_dir
         self.output_dir = args.output_dir
+        self.xlsx_output = args.xlsx_output
 
         if not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
@@ -39,15 +44,42 @@ class RegistrationCreator:
     def generate(self):
         print('Generating output')
         registrations = self.generateRegistrations()
-        registrations.to_csv(
-            os.path.join(self.output_dir, 'registrations.csv'),
-            index=False)
+        if self.xlsx_output:
+            registrations.to_excel(
+                os.path.join(self.output_dir, 'registrations.xlsx'),
+                sheet_name='Student, Parent, and Teacher', index=False)
+        else:
+            registrations.to_csv(
+            os.path.join(self.output_dir, 'registrations.csv'), index=False)
+        
+    def incrChar(self, char):
+        n = chr(ord(char) + 1)
+        
+        if (ord(char) == ord('z')):
+            n = ord('a')
+        elif (ord(char) == ord('Z')):
+            n = ord('A')
+        elif (ord(char) == ord('9')):
+            n = ord('0')
+        elif (ord(char) == ord('-')):
+            n = ord('~')
+        else:
+            n = ord(char) + 1
+            
+        return chr(n)
+
+    def incrString(self, string):
+        return "".join(self.incrChar(a) for a in string)
 
     def generateRegistrations(self):
         registrations = pandas.DataFrame(columns=[
             'StudentLastName',
             'StudentFirstName',
             'StudentName',
+            'Allergies',
+            'IEPor504',
+            'Nikolaus',
+            'PhotoRelease',
             'Class',
             'Room',
             'TeacherLastName',
@@ -56,6 +88,7 @@ class RegistrationCreator:
             'StudentGSSBEmail',
             'FamilyID',
             'StudentCode',
+            'LingcoPwd',
             'Parent1LastName',
             'Parent1FirstName',
             'Parent2LastName',
@@ -76,6 +109,15 @@ class RegistrationCreator:
         sycFamilyContacts = self.sycamore.get('family_contacts')
 
         for studentIndex, sycStudent in self.sycamore.get('students').iterrows():
+            #retrieve custom fields for student and final custom values in Local.General area
+            sycCustomFieldList = self.sycamore.get('student_custom_fields')
+            customFields = sycCustomFieldList.loc[sycCustomFieldList['students_id'] == studentIndex]
+            general = customFields[SCOPE_GENERAL].get(studentIndex)
+            photoRelease = next((x['Value'] for i, x in enumerate(general) if x['Name'] == CUSTOM_PHOTO), 'N')
+            nikolaus     = next((x['Value'] for i, x in enumerate(general) if x['Name'] == CUSTOM_NIKOLAUS), 'None')
+            iep          = next((x['Value'] for i, x in enumerate(general) if x['Name'] == CUSTOM_IEP), '')
+            allergies    = next((x['Value'] for i, x in enumerate(general) if x['Name'] == CUSTOM_ALLERGIES), '')
+            
             try:
                 sycStudentClassesList = self.sycamore.get('student_classes')
                 sycStudentClasses = sycStudentClassesList.loc[sycStudentClassesList['students_id'] == studentIndex]
@@ -95,6 +137,11 @@ class RegistrationCreator:
                 registration['StudentName'] = Generators.createStudentName(
                     first_name=sycStudent['FirstName'],
                     last_name=sycStudent['LastName'])
+                registration['Allergies'] = allergies
+                registration['IEPor504'] = iep
+                registration['Nikolaus'] = nikolaus
+                registration['PhotoRelease'] = photoRelease
+                
                 sycClass = sycClasses.loc[studentClassIndex]
                 sycClassDetails = sycClassesDetails.loc[studentClassIndex]
                 sycPrimaryStaffID = sycClass['PrimaryStaffID']
@@ -115,6 +162,7 @@ class RegistrationCreator:
                 sycFamily = sycFamilies.loc[sycFamilyId]
                 registration['FamilyID'] = sycFamily['Code']
                 registration['StudentCode'] = sycStudent['StudentCode']
+                registration['LingcoPwd'] = self.incrString(sycStudent['StudentCode'])
                 sycStudentFamilyContacts = sycFamilyContacts.loc[sycFamilyContacts['families_id'] == sycFamilyId]
                 sycStudentPrimaryParents = sycStudentFamilyContacts.loc[sycStudentFamilyContacts['PrimaryParent'] == 1]
                 primaryParentLastName = None
@@ -151,9 +199,12 @@ def parse_arguments():
                         required=True, help='Cache directory')
     parser.add_argument('--reload', dest='reload_data', action='store_true',
                         help='Whether to reload data')
+    parser.add_argument('--xlsx', dest='xlsx_output', action='store_true',
+                        help='use XLS format as output')
     parser.add_argument('--out', dest='output_dir', action='store',
                         required=True, help='Output directory')
     parser.set_defaults(reload_data=False)
+    parser.set_defaults(xlsx_output=False)
     return parser.parse_args()
 
 if __name__ == '__main__' :

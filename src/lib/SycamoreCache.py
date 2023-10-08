@@ -16,6 +16,7 @@ ENTITIES = [
     SycamoreEntity.Definition(name='students', index_col='ID', url='/School/{school_id}/Students'),
     SycamoreEntity.Definition(name='student_classes', index_col='ID', url='/Student/{entity_id}/Classes?quarter=0&format=1', iterate_over='students'),
     SycamoreEntity.Definition(name='student_details', index_col=None, url='/Student/{entity_id}', iterate_over='students'),
+    SycamoreEntity.Definition(name='student_custom_fields', index_col=None, url='/Student/{entity_id}/Statistics', iterate_over='students'),
     SycamoreEntity.Definition(name='contacts', index_col='ID', url='/School/{school_id}/Contacts'),
     SycamoreEntity.Definition(name='classes', index_col='ID', url='/School/{school_id}/Classes?quarter=0', data_location='Period'),
     SycamoreEntity.Definition(name='class_details', index_col=None, url='/School/{school_id}/Classes/{entity_id}', iterate_over='classes'),
