@@ -72,7 +72,9 @@ def createCityStateZip(city: str, state: str, zipcode: str) -> str:
 def createClassName(class_name: str, teacher_first: str, teacher_last: str) -> str:
     result = class_name
     if ("DSD I" in class_name):
-        result = class_name.replace(' Jahr', 'J')
+        result = result.replace(' Jahr', 'J')
+    if ("/" in class_name):
+        result = result.replace('/', '.')
     return result
 
 GRADE_MAP = {
