@@ -47,7 +47,7 @@ class RegistrationCreator:
         if self.xlsx_output:
             registrations.to_excel(
                 os.path.join(self.output_dir, 'registrations.xlsx'),
-                sheet_name='Student, Parent, and Teacher', index=False)
+                sheet_name='Student_Parent_and_Teacher', index=False)
         else:
             registrations.to_csv(
             os.path.join(self.output_dir, 'registrations.csv'), index=False)
