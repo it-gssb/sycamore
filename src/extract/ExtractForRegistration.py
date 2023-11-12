@@ -94,7 +94,8 @@ class RegistrationCreator:
             'Parent2LastName',
             'Parent2FirstName',
             'ParentNames',
-            'StudentLastNameIfDifferent',
+            'StudentLastNameIfDifferent1',
+            'StudentLastNameIfDifferent2',
             'PrimaryParentEmail',
             'SecondaryParentEmail',
             'TertiaryParentEmail',
@@ -165,23 +166,24 @@ class RegistrationCreator:
                 registration['LingcoPwd'] = self.incrString(sycStudent['StudentCode'])
                 sycStudentFamilyContacts = sycFamilyContacts.loc[sycFamilyContacts['families_id'] == sycFamilyId]
                 sycStudentPrimaryParents = sycStudentFamilyContacts.loc[sycStudentFamilyContacts['PrimaryParent'] == 1]
-                primaryParentLastName = None
                 if len(sycStudentPrimaryParents) > 0:
                     primaryParentLastName = sycStudentPrimaryParents.iloc[0]['LastName']
                     registration['Parent1LastName'] = primaryParentLastName
                     registration['Parent1FirstName'] = sycStudentPrimaryParents.iloc[0]['FirstName']
                     registration['PrimaryParentEmail'] = sycStudentPrimaryParents.iloc[0]['Email']
+                    if primaryParentLastName != studentLastName:
+                        registration['StudentLastNameIfDifferent1'] = studentLastName
                 if len(sycStudentPrimaryParents) > 1:
-                    registration['Parent2LastName'] = sycStudentPrimaryParents.iloc[1]['LastName']
+                    secondaryParentLastName = sycStudentPrimaryParents.iloc[1]['LastName']
+                    registration['Parent2LastName'] = secondaryParentLastName
                     registration['Parent2FirstName'] = sycStudentPrimaryParents.iloc[1]['FirstName']
                     registration['SecondaryParentEmail'] = sycStudentPrimaryParents.iloc[1]['Email']
+                    if secondaryParentLastName != studentLastName:
+                        registration['StudentLastNameIfDifferent2'] = studentLastName
                 if len(sycStudentPrimaryParents) > 2:
                     # osk: Whatever other e-mail address is left over (likely non-primary).
                     registration['TertiaryParentEmail'] = sycStudentPrimaryParents.iloc[2]['Email']
                 registration['ParentNames'] = sycFamily['Name']
-                if primaryParentLastName != studentLastName:
-                    # figure out what we actually want here
-                    registration['StudentLastNameIfDifferent'] = studentLastName
                 registration['StreetAddress'] = sycFamily['Address']
                 registration['CityStateZip'] = Generators.createCityStateZip(sycFamily['City'], sycFamily['State'], sycFamily['ZIP'])
 
