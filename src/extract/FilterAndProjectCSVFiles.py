@@ -13,7 +13,7 @@ def create_sql_table(file_path: Path, connection: sqlite3.Connection):
 def import_csv_to_sqlite(file_path: Path, connection: sqlite3.Connection):
     with open(file_path, "r") as f:
         reader = csv.reader(f)
-        header = next(reader)
+        header = [txt.replace(' ', '') for txt in next(reader)]
 
         # Create temporary table with the proper columns based on the header
         connection.execute(f"CREATE TEMPORARY TABLE temp_table ({','.join(header)})")
