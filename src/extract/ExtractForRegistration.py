@@ -86,7 +86,7 @@ class RegistrationCreator:
             'TeacherFirstName',
             'TeacherName',
             'StudentGSSBEmail',
-            'FamilyID',
+            'FamilyCode',
             'StudentCode',
             'LingcoPwd',
             'Parent1LastName',
@@ -161,7 +161,7 @@ class RegistrationCreator:
                     sycStudent['FirstName'], sycStudent['LastName'], include_domain=True)
                 sycFamilyId = sycStudent['FamilyID']
                 sycFamily = sycFamilies.loc[sycFamilyId]
-                registration['FamilyID'] = sycFamily['Code']
+                registration['FamilyCode'] = sycFamily['Code']
                 registration['StudentCode'] = sycStudent['StudentCode']
                 registration['LingcoPwd'] = self.incrString(sycStudent['StudentCode'])
                 sycStudentFamilyContacts = sycFamilyContacts.loc[sycFamilyContacts['families_id'] == sycFamilyId]
