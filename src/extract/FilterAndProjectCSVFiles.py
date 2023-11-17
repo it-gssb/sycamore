@@ -30,7 +30,7 @@ def create_sql_table(file_path: Path, header:list, connection: sqlite3.Connectio
         insert_data(table_name, header, connection)
     else:
         # create new table
-        connection.execute(f"CREATE TABLE {table_name} AS SELECT DISTINCT * FROM temp_table")
+        connection.execute(f"CREATE TABLE {table_name} AS SELECT DISTINCT * FROM temp_table LIMIT -1 OFFSET 2")
     connection.commit()
 
 
@@ -70,11 +70,14 @@ def main(args: argparse.Namespace):
             except Exception as e:
                 print(f"Error: {e}")
     else:
-        result = conn.execute(args.query).fetchall()
+        cursor  = conn.execute(args.query)
+        headers = list(map(lambda attr : attr[0], cursor.description))
+        result  = cursor.fetchall()
 
     if args.out:
         with open(args.out, "w", newline="") as f:
             writer = csv.writer(f)
+            writer.writerow(headers)
             writer.writerows(result)
 
     conn.close()
