@@ -57,7 +57,8 @@ class CleverCreator:
             index=False)
 
         enrollments = self.generateEnrollments()
-        enrollments.sort_values(by='Section_id').to_csv(
+        enrollments.sort_values(
+            by=['School_id', 'Section_id', 'Student_id']).to_csv(
             os.path.join(self.output_dir, 'enrollments.csv'),
             index=False)
 
@@ -67,7 +68,7 @@ class CleverCreator:
             index=False)
 
         guardianRelationships = self.generateGuardianRelationships()
-        guardianRelationships.sort_values(by='SIS ID').to_csv(
+        guardianRelationships.sort_values(by=['SIS ID', 'Email']).to_csv(
             os.path.join(self.output_dir, 'guardianrelationship.csv'),
             index=False)
 
