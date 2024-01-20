@@ -67,12 +67,12 @@ class Extract:
 
         index_val = None
         if entity.index_col is not None:
-            index_val = entity.index_col
+            index_col = entity.index_col
         elif entity_id is not None:
-            index_val = [entity_id]
+            index_col = pandas.Index([entity_id])
         else:
-            index_val = [self.school_id]
+            index_col = pandas.Index([self.school_id])
 
-        return pandas.DataFrame.from_records(
-            pandas.json_normalize(data),
-            index=index_val)
+        data_frame = pandas.json_normalize(data)
+        data_frame.set_index(keys=index_col, inplace=True)
+        return data_frame
