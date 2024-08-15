@@ -12,6 +12,7 @@ def __formatFirstName(name: str) -> str:
             .strip()
             .replace(' ', '')
             .replace('\'', '')
+            .replace('"', '')
             )
 
 def __formatLastName(name: str) -> str:
