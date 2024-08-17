@@ -1,13 +1,14 @@
 # Sycamore
 Python scripts to extract entire student body data from Sycamore.
 
-
 ## Prerequisites
 
 Install prerequisites through pip:
 ```
 pip install pandas
 pip install phonenumbers
+pip install urllib3
+pip install certifi
 ```
 
 If using a Python environment that is externally managed (e.g. on Debian),
@@ -20,7 +21,7 @@ sudo apt install python3-pandas python3-phonenumbers
 ## Access Token
 
 Reading data from the Sycamore API requires an access token. This can be
-created in the Sycamore UI at My Organizer -> My Access Tokens.
+created in the Sycamore UI at My Organizer -> Utilities -> Applications -> Access Tokens
 
 
 ## Operation
@@ -36,3 +37,6 @@ This command uses an existing Sycamore cache in the `cache` directory. If that
 does not exist or is incomplete, the directory is created and data from Sycamore
 is downloaded. It write output data to the `outv21` directory. The folder is
 created if it does not exist.
+
+# PowerShell
+Install-Module Microsoft.Graph -Scope CurrentUser
