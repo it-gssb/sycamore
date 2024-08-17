@@ -1,13 +1,14 @@
 # Sycamore
 Python scripts to extract entire student body data from Sycamore.
 
-
 ## Prerequisites
 
 Install prerequisites through pip:
 ```
 pip install pandas
 pip install phonenumbers
+pip install urllib3
+pip install certifi
 ```
 
 If using a Python environment that is externally managed (e.g. on Debian),
@@ -20,7 +21,7 @@ sudo apt install python3-pandas python3-phonenumbers
 ## Access Token
 
 Reading data from the Sycamore API requires an access token. This can be
-created in the Sycamore UI at My Organizer -> My Access Tokens.
+created in the Sycamore UI at My Organizer -> Utilities -> Applications -> Access Tokens
 
 
 ## Operation
