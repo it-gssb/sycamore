@@ -288,6 +288,7 @@ class CleverCreator:
             'role',
             ])
 
+        # Add Students
         for index, _sycStudent in self.sycamore.get('students').iterrows():
             try:
                 sycStudentClassesList = self.sycamore.get('student_classes')
@@ -309,7 +310,23 @@ class CleverCreator:
 
                 sdsEnrollments.loc[studentStudentClassIndex] = pandas.Series(data=sdsEnrollment)
 
-        return sdsEnrollments
+        # Add teacher for each class
+        for index, sycClass in self.sycamore.get('classes').iterrows():
+            teacherId = Generators.createTeacherId(sycClass['PrimaryStaffID'])
+            if not teacherId:
+                print('WARNING: Class {} does not have a teacher assigned.'.format(index))
+                continue
+
+            teacherClassIndex = '{}_{}'.format(teacherId, index)
+            sdsEnrollment = {}
+            sdsEnrollment['classSourcedId'] = index
+            sdsEnrollment['userSourcedId'] = teacherId
+            sdsEnrollment['role'] = Generators.createUserRole(sycamore_employee_position='Teacher',
+                                                        sycamore_employee_id=teacherId)
+
+            sdsEnrollments.loc[teacherClassIndex] = pandas.Series(data=sdsEnrollment)
+
+        return sdsEnrollments.drop_duplicates()
 
     def generateAcademicSessions(self):
         currentYear = self._getCurrentYear()
