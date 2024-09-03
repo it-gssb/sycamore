@@ -13,7 +13,9 @@ $csvUsers = Import-Csv $csvFile
 $existingUsers=@{}
 
 $studentLicenseSku = Get-MgSubscribedSku -All | Where SkuPartNumber -eq 'STANDARDWOFFPACK_STUDENT'
-$allStudentsGroup = Get-MgGroup -Filter "DisplayName eq 'All Students'"
+
+# Enable this to add new accounts to a group
+#$allStudentsGroup = Get-MgGroup -Filter "DisplayName eq 'All Students'"
 
 $adUsers = Get-MgUser -All -Property UserPrincipalName, AccountEnabled
 foreach ($user in $adUsers) {
@@ -42,9 +44,15 @@ foreach ($user in $csvUsers) {
     $userDisplayName = "{0} {1}" -f $user.FirstName, $user.LastName
     $mailNickname = $userPrincipalName.Remove($userPrincipalName.IndexOf("@"))
     $passwordProfile = @{ Password = $userPassword }
+
+    # Create user and set password
     $createdUser = New-MgUser -AccountEnabled -GivenName $user.FirstName -Surname $user.LastName -UserPrincipalName $userPrincipalName -PasswordProfile $passwordProfile -DisplayName $userDisplayName -MailNickname $mailNickname -PasswordPolicies "DisableStrongPassword" -AgeGroup "Minor" -UsageLocation US
+
+    # Add license for user
     Set-MgUserLicense -UserId $userPrincipalName -AddLicenses @{SkuId = $studentLicenseSku.SkuId} -RemoveLicenses @()
-    New-MgGroupMember -GroupId $allStudentsGroup.Id -DirectoryObjectId $createdUser.Id
+
+    # Enable this to add new accounts to a group
+    #New-MgGroupMember -GroupId $allStudentsGroup.Id -DirectoryObjectId $createdUser.Id
 }
 
 Write-Information "Done" -InformationAction Continue
