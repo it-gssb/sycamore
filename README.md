@@ -39,4 +39,4 @@ is downloaded. It write output data to the `outv21` directory. The folder is
 created if it does not exist.
 
 # PowerShell
-Install-Module Microsoft.Graph -Scope CurrentUser
+See [src/powershell/README.md](src/powershell/README.md).
