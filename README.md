@@ -37,3 +37,6 @@ This command uses an existing Sycamore cache in the `cache` directory. If that
 does not exist or is incomplete, the directory is created and data from Sycamore
 is downloaded. It write output data to the `outv21` directory. The folder is
 created if it does not exist.
+
+# PowerShell
+See [src/powershell/README.md](src/powershell/README.md).
