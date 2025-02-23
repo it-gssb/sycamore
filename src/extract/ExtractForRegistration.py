@@ -146,6 +146,8 @@ class RegistrationCreator:
                 sycClass = sycClasses.loc[studentClassIndex]
                 sycClassDetails = sycClassesDetails.loc[studentClassIndex]
                 sycPrimaryStaffID = sycClass['PrimaryStaffID']
+                if sycPrimaryStaffID not in sycEmployees.index:
+                    continue
                 sycPrimaryStaff = sycEmployees.loc[sycPrimaryStaffID]
                 registration['Class'] = Generators.createClassName(
                     class_name=sycStudentClass['Name'],
@@ -156,7 +158,7 @@ class RegistrationCreator:
                 registration['TeacherFirstName'] = sycPrimaryStaff['FirstName']
                 registration['TeacherName'] = Generators.createTeacherName(
                     first_name=sycPrimaryStaff['FirstName'],
-                    last_name=sycPrimaryStaff['LastName'])
+                    last_name=sycPrimaryStaff['LastName'])              
                 registration['StudentGSSBEmail'] = Generators.createStudentEmailAddress(
                     sycStudent['FirstName'], sycStudent['LastName'], include_domain=True)
                 sycFamilyId = sycStudent['FamilyID']
