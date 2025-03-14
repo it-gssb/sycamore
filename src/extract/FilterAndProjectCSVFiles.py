@@ -7,7 +7,7 @@ from pathlib import Path
 def get_table_name(file_path):
     # strip of pattern at end of file indicating date and time stamp,
     # e.g._11-12-2023-225308
-    p = re.compile('[a-zA-Z]([\w_]*[a-zA-Z])?')
+    p = re.compile(r'[a-zA-Z]([\w_]*[a-zA-Z])?')
     m = p.match(file_path.stem)
     return file_path.stem[:m.end()]
 
