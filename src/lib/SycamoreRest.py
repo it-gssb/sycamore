@@ -2,7 +2,6 @@ from __future__ import annotations
 
 # to handle  data retrieval
 import urllib3
-# from urllib3 import request
 # to handle certificate verification
 import certifi
 # to manage json data
@@ -30,11 +29,20 @@ class Extract:
         self.school_id = school_id
         self.token = token
 
+        retry_strategy = urllib3.util.Retry(
+            total=10,                # total number of retries
+            backoff_factor=1,
+            status_forcelist=[500],  # status code to for retry
+            raise_on_status=True,    # raise and exception if retries fail
+        )
+
         self.http = urllib3.PoolManager(
             cert_reqs='CERT_REQUIRED',
             ca_certs=certifi.where(),
             headers={'Authorization': 'Bearer ' + self.token,
-                     'Content-type': 'application/json; charset=utf-8'})
+                     'Content-type': 'application/json; charset=utf-8'},
+            retries=retry_strategy
+        )
 
 
     def _retrieve(self, query: str) -> Dict[str, str]:
