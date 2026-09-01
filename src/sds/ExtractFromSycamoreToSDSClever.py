@@ -122,7 +122,7 @@ class CleverCreator:
 
     def _getCurrentYear(self):
         for index, year in self.sycamore.get('years').iterrows():
-            if year['Current'] == '1':
+            if str(year['Current']) == '1':
                 return self.sycamore.get('years_details').loc[index]
         return None
 
