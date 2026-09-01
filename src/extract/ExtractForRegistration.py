@@ -104,7 +104,7 @@ class RegistrationCreator:
         ])
 
         sycClasses = self.sycamore.get('classes')
-        sycClassesDetails = self.sycamore.get('class_details')
+        #sycClassesDetails = self.sycamore.get('class_details')
         sycEmployees = self.sycamore.get('employees')
         sycFamilies = self.sycamore.get('families')
         sycFamilyContacts = self.sycamore.get('family_contacts')
@@ -144,7 +144,7 @@ class RegistrationCreator:
                 registration['PhotoRelease'] = photoRelease
                 
                 sycClass = sycClasses.loc[studentClassIndex]
-                sycClassDetails = sycClassesDetails.loc[studentClassIndex]
+                #sycClassDetails = sycClassesDetails.loc[studentClassIndex]
                 sycPrimaryStaffID = sycClass['PrimaryStaffID']
                 if sycPrimaryStaffID not in sycEmployees.index:
                     continue
@@ -154,7 +154,7 @@ class RegistrationCreator:
                     class_name=sycStudentClass['Name'],
                     teacher_first=sycPrimaryStaff['FirstName'],
                     teacher_last=sycPrimaryStaff['LastName'])
-                registration['Room'] = sycClassDetails['Facility.Name']
+                registration['Room'] = 'TBD' # sycClassDetails['Facility.Name']
                 registration['TeacherLastName'] = sycPrimaryStaff['LastName']
                 registration['TeacherFirstName'] = sycPrimaryStaff['FirstName']
                 registration['TeacherName'] = Generators.createTeacherName(
