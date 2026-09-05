@@ -20,6 +20,9 @@ CUSTOM_NIKOLAUS  = 'Permission for Nikolaus'
 CUSTOM_ALLERGIES = 'Allergies'
 CUSTOM_IEP       = 'IEP or 504 in regular school'
 
+FAM_CUSTOM_PARENT_PARTICIPATION = 'Parent Participation 2026/27'
+FAM_CUSTOM_COMPLEMENTARY = '2026/27 Complementary'
+
 class InvalidOutputDir(Exception):
     pass
 
@@ -100,13 +103,16 @@ class RegistrationCreator:
             'SecondaryParentEmail',
             'TertiaryParentEmail',
             'StreetAddress',
-            'CityStateZip'
+            'CityStateZip',
+            'FamilyParticipation',
+            'FamilyComplementary'
         ])
 
         sycClasses = self.sycamore.get('classes')
         sycClassesDetails = self.sycamore.get('class_details')
         sycEmployees = self.sycamore.get('employees')
         sycFamilies = self.sycamore.get('families')
+        sycFamilyDetailsList = self.sycamore.get('family_details')
         sycFamilyContacts = self.sycamore.get('family_contacts')
 
         for studentIndex, sycStudent in self.sycamore.get('students').iterrows():
@@ -189,6 +195,11 @@ class RegistrationCreator:
                 registration['ParentNames'] = sycFamily['Name']
                 registration['StreetAddress'] = sycFamily['Address']
                 registration['CityStateZip'] = Generators.createCityStateZip(sycFamily['City'], sycFamily['State'], sycFamily['ZIP'])
+
+                sycFamilyDetails = sycFamilyDetailsList.loc[sycFamilyId]
+                sycFamilyCustomFields = sycFamilyDetails['CustomFields']
+                registration['FamilyParticipation'] = next(((x['Label'] if 'Label' in x else '') for i, x in enumerate(sycFamilyCustomFields) if x['Name'] == FAM_CUSTOM_PARENT_PARTICIPATION), '')
+                registration['FamilyComplementary'] = next(((x['Label'] if 'Label' in x else '') for i, x in enumerate(sycFamilyCustomFields) if x['Name'] == FAM_CUSTOM_COMPLEMENTARY), '')
 
                 registrations.loc[str(studentIndex) + '_' + str(studentClassIndex)] = pandas.Series(data=registration)
 
